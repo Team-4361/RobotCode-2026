@@ -2,7 +2,7 @@
 
 /* Imports */
 
-/* 
+
 import frc.robot.Constants;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -26,13 +26,12 @@ public class ClimberSubsystem extends SubsystemBase {
     private double aveCurretPos = (rightCurrentPos + leftCurrentPos) / 2; 
     private double error = targetPosition - aveCurretPos;
     private double pidOutput;
-*/
 
 
- //   public ClimberSubsystem() 
-   // {
-        /* Declares Sparkmax and Position */
-        /* 
+
+   public ClimberSubsystem() 
+     {
+        /* Declares Sparkmax and Position */ 
         winchMotor = new SparkMax(0, null);
         rightLinearActuator = new SparkMax(Constants.climberConstants.RSPARKMAX_ID, MotorType.kBrushless); 
         leftLinearActuator = new SparkMax(Constants.climberConstants.LSPARKMAX_ID, MotorType.kBrushless); 
@@ -118,5 +117,3 @@ public class ClimberSubsystem extends SubsystemBase {
     }
 
 }
-
-*/
