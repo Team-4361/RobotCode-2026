@@ -11,18 +11,24 @@ import com.revrobotics.RelativeEncoder;
 
 public class ClimberSubsystem extends Command {
     private SparkMax linearActuator;
-    private RelativeEncoder linearActuatorPos;
-    private RelativeEncoder linearActuatorEncoder;
+    private RelativeEncoder linearActuatorPosID1;
+    private RelativeEncoder linearActuatorPosID2;
+    private RelativeEncoder linearActuatorEncoderID1;
+    private RelativeEncoder linearActuatorEncoderID2;
 
     public ClimberSubsystem() 
     {
         /* Declares Sparkmax and Position */
-        linearActuator = new SparkMax(Constants.climberConstants.SPARKMAX_ID, MotorType.kBrushless);
-        //linearActuatorEncoder = linearActuatorMotor.getEncoder();
-        linearActuatorPos.setPosition(Constants.climberConstants.climberZero); //Sets the zero
+        linearActuator = new SparkMax(Constants.climberConstants.RSPARKMAX_ID, MotorType.kBrushless);
+        linearActuator = new SparkMax(Constants.climberConstants.LSPARKMAX_ID, MotorType.kBrushless);
+        linearActuatorEncoderID1 = linearActuatorEncoderID1.getEncoder(); //needs to be fixed a bit
+        linearActuatorEncoderID2 = linearActuatorEncoderID2.getEncoder(); //needs to be fixed a bit
+        linearActuatorPosID1.setPosition(Constants.climberConstants.climberZero); //Sets the zero
+        linearActuatorPosID2.setPosition(Constants.climberConstants.climberZero);
     }
 
     public void periodic() {}
+    /* TODO: Test to make up and down is correct */
 
     //Moves the linear actuator up (negative is down)
     public void moveDown() {
@@ -31,7 +37,7 @@ public class ClimberSubsystem extends Command {
 
     //Moves the linear actuator up (positive is up)
     public void moveUp() {
-        linearActuator.set(Constants.climberConstants.climberSpeed);
+        linearActuator.set(Constants.climberConstants.climberSpeed); 
     }
 
     //Stops the Linear Actuator
