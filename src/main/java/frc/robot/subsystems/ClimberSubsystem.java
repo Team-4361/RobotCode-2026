@@ -10,7 +10,7 @@ import com.revrobotics.spark.SparkLowLevel.MotorType;
 import com.revrobotics.spark.config.EncoderConfig;
 import com.revrobotics.RelativeEncoder;
 
-public class ClimberSubsystem extends Command {
+public class ClimberSubsystem extends SubsystemBase {
     private SparkMax linearActuator;
     private RelativeEncoder linearActuatorPos;
     private RelativeEncoder linearActuatorEncoder;
@@ -26,7 +26,7 @@ public class ClimberSubsystem extends Command {
         winchEncoder = winchMotor.getEncoder();
         linearActuator = new SparkMax(Constants.climberConstants.RSPARKMAX_ID, MotorType.kBrushless); 
         linearActuatorEncoder = linearActuator.getEncoder();
-        //linearActuatorPos = linearActuator.getRelativeEncoder(); //getRelativeEncoder doesn't exist yet, will be implemented later.
+        //linearActuatorPos = linearActuator.getRelativeEncoder(); //Maybe later if this is implemented
         linearActuatorPos.setPosition(Constants.climberConstants.climberZero); //Sets the zero
         winchEncoder.setPosition(0);
 

@@ -8,6 +8,7 @@ public class LinearActuatorUp extends Command{
     public LinearActuatorUp(ClimberSubsystem subsystem) {
         this.linearActuator = subsystem;
 
+        addRequirements(linearActuator);
     }
 
 @Override

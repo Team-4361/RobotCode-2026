@@ -8,7 +8,7 @@ public class WinchUp extends Command {
     public WinchUp(ClimberSubsystem subsystem) {
         this.winch = subsystem;
 
-        addRequirements(winch); //Unsure why doesn't work
+        addRequirements(winch); 
     }
 
  @Override
