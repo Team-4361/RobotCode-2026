@@ -6,31 +6,36 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.config.EncoderConfig;
 import com.revrobotics.RelativeEncoder;
 
 public class ClimberSubsystem extends Command {
     private SparkMax linearActuator;
     private RelativeEncoder linearActuatorPos;
+    private RelativeEncoder linearActuatorEncoder;
 
+    public ClimberSubsystem() 
+    {
+        /* Declares Sparkmax and Position */
+        linearActuator = new SparkMax(Constants.climberConstants.SPARKMAX_ID, MotorType.kBrushless);
+        //linearActuatorEncoder = linearActuatorMotor.getEncoder();
+        linearActuatorPos.setPosition(Constants.climberConstants.climberZero); //Sets the zero
+    }
 
-public ClimberSubsystem() 
-{
-    /* Declares Sparkmax and Position */
-    //linearActuator = new SparkMax();
-    linearActuatorPos.setPosition(0);
-}
+    public void periodic() {}
 
-public void periodic() {}
+    //Moves the linear actuator up (negative is down)
+    public void moveDown() {
+        linearActuator.set(-Constants.climberConstants.climberSpeed);
+    }
 
-public void moveDown() {
+    //Moves the linear actuator up (positive is up)
+    public void moveUp() {
+        linearActuator.set(Constants.climberConstants.climberSpeed);
+    }
 
-}
-
-public void moveUp() {
- 
-}
-
-public void stopLinearActuator() {
- linearActuator.set(0);
-}
+    //Stops the Linear Actuator
+    public void stopLinearActuator() { 
+        linearActuator.set(0);
+    }
 }
