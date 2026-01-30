@@ -2,7 +2,9 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.NeutralModeValue;
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
@@ -21,16 +23,18 @@ public class ShooterSubsystem extends SubsystemBase
 {
     private final TalonFX shooterKraken;
     private final SparkFlex indexVortex;
-
-    public ShooterSubsystem()
-    {
-        shooterKraken = new TalonFX(0); //add to constants  
-        shooterKraken.getConfigurator().apply(new TalonFXConfiguration());
-        var currentLimitsConfigs =   new CurrentLimitsConfigs();
-        currentLimitsConfigs.StatorCurrentLimit = 40; // add value to constants 
-        currentLimitsConfigs.StatorCurrentLimitEnable = true;
-        shooterKraken.getConfigurator().refresh(currentLimitsConfigs);
-        shooterKraken.getConfigurator().apply(currentLimitsConfigs);
+    private MotionMagicVelocityVoltage talonController;
+        public ShooterSubsystem()
+        {
+            shooterKraken = new TalonFX(0); //add to constants  
+            shooterKraken.getConfigurator().apply(new TalonFXConfiguration());
+            var currentLimitsConfigs =   new CurrentLimitsConfigs();
+            shooterKraken.setNeutralMode(NeutralModeValue.Coast);
+            currentLimitsConfigs.StatorCurrentLimit = 40; // add value to constants 
+            currentLimitsConfigs.StatorCurrentLimitEnable = true;
+            shooterKraken.getConfigurator().refresh(currentLimitsConfigs);
+            shooterKraken.getConfigurator().apply(currentLimitsConfigs);
+            talonController = new MotionMagicVelocityVoltage(0);
         indexVortex = new SparkFlex(0, MotorType.kBrushless); 
         SparkFlexConfig config = new SparkFlexConfig();
         config.idleMode(IdleMode.kBrake);
@@ -52,6 +56,11 @@ public class ShooterSubsystem extends SubsystemBase
     {
         indexVortex.set(speed);
     }
+   
     
+    /*public double getRPM()
+    {
+        
 
+    }*/
 }
