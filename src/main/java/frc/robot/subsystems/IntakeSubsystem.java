@@ -25,21 +25,18 @@ public class IntakeSubsystem extends SubsystemBase
 
     public IntakeSubsystem()
     {
-<<<<<<< HEAD
-        sparkFlex = new SparkFlex(0, null);
-=======
         sparkFlex = new SparkFlex(Constants.IntakeConstants.INTAKENEO, MotorType.kBrushless);
->>>>>>> 5a7a6b1d4fdb72dfdf2223388de4290d63705c3f
         SparkMaxConfig config = new SparkMaxConfig();
         config.idleMode(IdleMode.kBrake);
         sparkFlex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         encoder = sparkFlex.getEncoder();
-<<<<<<< HEAD
-=======
     }
     public void SetMotorSpeed(Double speed) 
     {
         sparkFlex.set(speed);
->>>>>>> 5a7a6b1d4fdb72dfdf2223388de4290d63705c3f
+    }
+    public void stop()
+    {
+        sparkFlex.stopMotor();
     }
 }
