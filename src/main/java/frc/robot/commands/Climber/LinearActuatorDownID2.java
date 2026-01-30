@@ -2,9 +2,9 @@ package frc.robot.commands.Climber;
 
 import frc.robot.subsystems.ClimberSubsystem;
 
-public class LinearActuatorDown {
+public class SecondLinearActuatorDown {
     public final ClimberSubsystem linearActuator;
-    public LinearActuatorDown(ClimberSubsystem subsystem) {
+    public SecondLinearActuatorDown(ClimberSubsystem subsystem) {
         this.linearActuator = subsystem;
 
     }
