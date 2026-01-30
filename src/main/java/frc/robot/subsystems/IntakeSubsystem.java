@@ -7,6 +7,7 @@ import com.revrobotics.spark.SparkClosedLoopController;
 import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.SparkBase.ControlType;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkMaxConfig;
 
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -21,6 +22,10 @@ public class IntakeSubsystem extends SubsystemBase
 
     public IntakeSubsystem()
     {
-        sparkFlex = new SparkFlex(0, null)
+        sparkFlex = new SparkFlex(0, null);
+        SparkMaxConfig config = new SparkMaxConfig();
+        config.idleMode(IdleMode.kBrake);
+        sparkFlex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        encoder = sparkFlex.getEncoder();
     }
 }
