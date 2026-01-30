@@ -21,7 +21,7 @@ public class ShooterSubsystem extends SubsystemBase
 {
     private final TalonFX shooterKraken;
     private final SparkFlex indexVortex;
-    private final RelativeEncoder encoder;
+
     public ShooterSubsystem()
     {
         shooterKraken = new TalonFX(0); //add to constants  
@@ -35,7 +35,6 @@ public class ShooterSubsystem extends SubsystemBase
         SparkFlexConfig config = new SparkFlexConfig();
         config.idleMode(IdleMode.kBrake);
         indexVortex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-        encoder = indexVortex.getEncoder();
 
     } 
 
@@ -53,5 +52,6 @@ public class ShooterSubsystem extends SubsystemBase
     {
         indexVortex.set(speed);
     }
+    
 
 }
