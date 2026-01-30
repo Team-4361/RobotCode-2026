@@ -56,11 +56,14 @@ public class ShooterSubsystem extends SubsystemBase
     {
         indexVortex.set(speed);
     }
-   
-    
-    /*public double getRPM()
-    {
+    public void stopShooter()
+   {
+        shooterKraken.stopMotor();
         
-
-    }*/
+   }
+   public double getRPM()
+   {
+         return shooterKraken.getVelocity().getValueAsDouble();
+   }
+    
 }
