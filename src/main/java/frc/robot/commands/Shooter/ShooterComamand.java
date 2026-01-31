@@ -24,13 +24,14 @@ private final double shooterSpeed;
     @Override
     public void execute()
     {
-        shooter.shooterKraken(shooterSpeed); //moves the elevator up
+        shooter.indexVortex(indexSpeed); //sets the indaexer at the given speed 
+        shooter.shooterKraken(shooterSpeed); //set the shooter at the given speeed
     }
 
     @Override
     public void end(boolean interrupted)
     {
-        shooter.stopShooter(); //if interrupted, stops the elevator as an emergency
+        shooter.stopShooter(); //if interupted, stops all
     }
 
     @Override
