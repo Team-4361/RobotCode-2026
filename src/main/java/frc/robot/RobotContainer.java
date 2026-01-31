@@ -4,6 +4,8 @@
 
 package frc.robot;
 
+import com.pathplanner.lib.auto.AutoBuilder;
+import com.pathplanner.lib.auto.NamedCommands;
 import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -42,7 +44,7 @@ public class RobotContainer
                                                                                 "swerve/neo"));
 
   // Establish a Sendable Chooser that will be able to be sent to the SmartDashboard, allowing selection of desired auto
-  private final SendableChooser<Command> autoChooser = new SendableChooser<>();
+  private SendableChooser<Command> autoChooser;
 
   /**
    * Converts driver input into a field-relative ChassisSpeeds that is controlled by angular velocity.
@@ -118,14 +120,9 @@ public class RobotContainer
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
 
-    //Set the default auto (do nothing) 
-    autoChooser.setDefaultOption("Do Nothing", Commands.runOnce(drivebase::zeroGyroWithAlliance)
-                                                    .andThen(Commands.none()));
-
-    //Add a simple auto option to have the robot drive forward for 1 second then stop
-    autoChooser.addOption("Drive Forward", Commands.runOnce(drivebase::zeroGyroWithAlliance).withTimeout(.2)
-                                                .andThen(drivebase.driveForward().withTimeout(1)));
     //Put the autoChooser on the SmartDashboard
+
+      autoChooser = AutoBuilder.buildAutoChooser("New Auto");
     SmartDashboard.putData("Auto Chooser", autoChooser);
 
     if (autoChooser.getSelected() == null ) {
@@ -151,7 +148,7 @@ public class RobotContainer
 
     if (RobotBase.isSimulation())
     {
-      drivebase.setDefaultCommand(driveFieldOrientedDirectAngleKeyboard);
+      drivebase.setDefaultCommand(teleopFlightDriveCommand);
     } else
     {
       drivebase.setDefaultCommand(teleopFlightDriveCommand);
@@ -192,10 +189,15 @@ public class RobotContainer
       driverXbox.rightBumper().onTrue(Commands.none());
     } else
     {
-      joystickL.button(12).onTrue((Commands.runOnce(drivebase::zeroGyro)));      driverXbox.start().whileTrue(Commands.none());
+      joystickL.button(12).onTrue((Commands.runOnce(drivebase::zeroGyro)));     
+
+      driverXbox.start().whileTrue(Commands.none());
       driverXbox.back().whileTrue(Commands.none());
       driverXbox.leftBumper().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
       driverXbox.rightBumper().onTrue(Commands.none());
+      joystickL.button(5).onTrue(Commands.runOnce(() -> drivebase.resetOdometry(new Pose2d(0, 0, new Rotation2d(Math.PI)))));
+      joystickL.button(3).onTrue(Commands.runOnce(() -> drivebase.resetOdometry(new Pose2d(15.511, 6.537, new Rotation2d()))));
+
     }
 
   }
