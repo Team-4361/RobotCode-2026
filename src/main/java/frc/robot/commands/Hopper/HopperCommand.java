@@ -14,13 +14,13 @@ public class HopperCommand extends Command {
 
     @Override
     public void initialize() {
-          hopperSubsystem.feed();
+          hopperSubsystem.feed(0.5);
     }
 
     @Override
     public void execute() {
        
-        hopperSubsystem.feed();
+        hopperSubsystem.feed(0.5);
     }
 
     @Override
