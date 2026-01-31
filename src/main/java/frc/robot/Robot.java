@@ -163,13 +163,13 @@ public class Robot extends TimedRobot
   public void teleopPeriodic()
   {
  // Read joystick axes
-        double xSpeedJoystick = joystickL.getRawAxis(1); // INVERTED
+        double xSpeedJoystick = -joystickL.getRawAxis(1); // INVERTED
         if (Math.abs(xSpeedJoystick) < Settings.joystickDeadband) {
             xSpeedJoystick = 0;
         }
         xSpeedJoystick = xfilter.calculate(xSpeedJoystick);
 
-        double ySpeedJoystick = joystickL.getRawAxis(0); // INVERTED
+        double ySpeedJoystick = -joystickL.getRawAxis(0); // INVERTED
         if (Math.abs(ySpeedJoystick) < Settings.joystickDeadband) {
             ySpeedJoystick = 0;
         }
