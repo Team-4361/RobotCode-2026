@@ -1,4 +1,4 @@
-package frc.robot.subsystems.swerveDrive;
+package frc.robot.subsystems.swerveDrive; //for testing a motor
 
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
@@ -33,7 +33,7 @@ public MotorSubsystem() {
     pidController = new PIDController(KP, KI, KD); //initialtize the pid controller with the related P, I, and D values
     pidController.setTolerance(0.5); // the unit tolerance in which the pidcontroller will stop moving the motor to the setpoint
 }
-public void forwardBucketAngle()
+public void forwardMotorAngle()
 {
     targetAngle1 += 50; //add 50 encoder units to the target angle variable
 }
@@ -45,43 +45,43 @@ public boolean atTarget()
 
 }
 
-public void backwardsBucketAngle()
+public void backwardsMotorAngle()
 {
     targetAngle1 -= 50;
 }
 
-public void fBucket() {
+public void fMotor() {
     //targetAngle1 += 5.0;
     motor.set(MAX_POWER); //sets the power for going forward
 }
 
-public void bBucket() {
+public void bMotor() {
     //targetAngle1 -= 5.0;
     motor.set(-MAX_POWER); //sets the power for going backwards
 }
 /* 
-public void resetBucket() {
+public void resetMotor() {
     //encoder.reset();
     targetAngle1 = 0.0;
 }
 
-public void zeroBucket() {
+public void zeroMotor() {
     targetAngle1 = 0.0;
 }
 */
-public void stopBucket() {
-    motor.stopMotor(); //stops the bucket
+public void stopMotor() {
+    motor.stopMotor(); //stops the Motor
 }
 public double getCurrentAngle(){
-    return encoder.getPosition(); //gets the position of the bucket
+    return encoder.getPosition(); //gets the position of the Motor
 }
 public double getTargetAngle(){
     return targetAngle1; //gets a target angle
 }
 @Override
 public void periodic() {
-    double currentAngle = encoder.getPosition(); //gets the position of the bucket
-    double pidOutput = pidController.calculate(currentAngle, targetAngle1); //tells the bucket its PID value
+    double currentAngle = encoder.getPosition(); //gets the position of the Motor
+    double pidOutput = pidController.calculate(currentAngle, targetAngle1); //tells the Motor its PID value
 
     pidOutput = Math.max(-1, Math.min(1, pidOutput)); //PID stuff
 
