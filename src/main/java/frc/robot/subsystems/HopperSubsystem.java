@@ -4,7 +4,10 @@ package frc.robot.subsystems;
 import frc.robot.Constants;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+import com.revrobotics.spark.config.SparkFlexConfig;
 import com.revrobotics.spark.config.SparkMaxConfig;
+import com.revrobotics.PersistMode;
+import com.revrobotics.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -12,26 +15,29 @@ public class HopperSubsystem extends SubsystemBase //hello Jack and Chloe I know
 {
   private final SparkMax hopperMotor;
 
+
  // constants
-private static final int HOPPER_ID = 1;
-private static final double FEED_SPEED = 0.5;
+/*private static final int HOPPER_ID = 1;
+private static final double FEED_SPEED = 0.5;*/
 
 
   public HopperSubsystem()
   {
-    hopperMotor = new SparkMax(HOPPER_ID, MotorType.kBrushless); // creates a new motor controller object for the hopper motor
-    hopperMotor.setIdleMode(IdleMode.kCoast); //
-   hopperMotor.setSmartCurrentLimit(40);  // limit to protect motor
+    hopperMotor = new SparkMax(1, MotorType.kBrushless); // creates a new motor controller object for the hopper motor
+    SparkMaxConfig config = new SparkMaxConfig();
+    config.idleMode(IdleMode.kCoast); //
+    hopperMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+   config.smartCurrentLimit(40);  // limit to protect motor
   }
 
 
-  public void feed()
+  public void feed(double FEED_SPEED)
   {
     hopperMotor.set(FEED_SPEED);
   }
 
  // Reverses the hopper motor (for unjamming or something)
-  public void reverseHopper()
+  public void reverseHopper(double FEED_SPEED)
   {
     hopperMotor.set(-FEED_SPEED);
 
