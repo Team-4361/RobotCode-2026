@@ -119,6 +119,7 @@ public class RobotContainer
     // Configure the trigger bindings
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
+    
 
     //Put the autoChooser on the SmartDashboard
 
