@@ -38,16 +38,15 @@ public class ClimberSubsystem extends Command {
     }
 
     public void periodic() {}
-    /* TODO: Test to make up and down is correct */
 
-    //Moves the linear actuator up (negative is down)
+    //Moves the linear actuator up (postitive is down)
     public void moveDown() {
-        linearActuator.set(-Constants.climberConstants.climberSpeed);
+        linearActuator.set(Constants.climberConstants.climberSpeed);
     }
 
-    //Moves the linear actuator up (positive is up)
+    //Moves the linear actuator up (negative is up)
     public void moveUp() {
-        linearActuator.set(Constants.climberConstants.climberSpeed); 
+        linearActuator.set(-Constants.climberConstants.climberSpeed); 
     }
 
     //Stops the Linear Actuator
