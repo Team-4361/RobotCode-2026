@@ -7,12 +7,14 @@ package frc.robot;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
@@ -26,7 +28,11 @@ import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 import java.io.File;
+import java.util.Optional;
+
 import swervelib.SwerveInputStream;
+
+
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a "declarative" paradigm, very
@@ -39,10 +45,16 @@ public class RobotContainer
   // Replace with CommandPS4Controller or CommandJoystick if needed
   final CommandJoystick joystickL = new CommandJoystick(0);
   final CommandJoystick joystickR = new CommandJoystick(1);
+  double xV = 0;
+  double yV = 0;
+  double rV = 0;
   final CommandXboxController driverXbox = new CommandXboxController(2);  // The robot's subsystems and commands are defined here...
-  private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
+  public final static SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve/neo"));
 
+    SlewRateLimiter xfilter = new SlewRateLimiter(4);
+    SlewRateLimiter yfilter = new SlewRateLimiter(4);
+    SlewRateLimiter rfilter = new SlewRateLimiter(4);
   // Establish a Sendable Chooser that will be able to be sent to the SmartDashboard, allowing selection of desired auto
   private SendableChooser<Command> autoChooser;
 
@@ -102,10 +114,10 @@ public class RobotContainer
    private final Command teleopFlightDriveCommand = drivebase.driveFieldOriented(
     SwerveInputStream.of(
         drivebase.getSwerveDrive(),
-        () -> -joystickL.getY(),  // Forward/Backward
-        () -> -joystickL.getX()   // Left/Right
+        () -> xV,  // Forward/Backward
+        () -> yV   // Left/Right
     )
-    .withControllerRotationAxis(() -> -joystickR.getTwist() * 0.95) // Rotation using right stick twist
+    .withControllerRotationAxis(() -> rV) // Rotation using right stick twist
     .deadband(OperatorConstants.DEADBAND) // Apply deadband as a setting
     .scaleTranslation(0.8)
     .allianceRelativeControl(true)
@@ -119,12 +131,13 @@ public class RobotContainer
     // Configure the trigger bindings
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
-    
+
 
     //Put the autoChooser on the SmartDashboard
 
       autoChooser = AutoBuilder.buildAutoChooser("New Auto");
     SmartDashboard.putData("Auto Chooser", autoChooser);
+    
 
     if (autoChooser.getSelected() == null ) {
     RobotModeTriggers.autonomous().onTrue(Commands.runOnce(drivebase::zeroGyroWithAlliance));
@@ -152,7 +165,7 @@ public class RobotContainer
       drivebase.setDefaultCommand(teleopFlightDriveCommand);
     } else
     {
-      drivebase.setDefaultCommand(teleopFlightDriveCommand);
+      //drivebase.setDefaultCommand(teleopFlightDriveCommand);
     }
 
     if (Robot.isSimulation())

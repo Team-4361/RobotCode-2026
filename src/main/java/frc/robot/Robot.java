@@ -4,11 +4,21 @@
 
 package frc.robot;
 
+import java.io.File;
+import java.util.Optional;
+
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
+import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
+
+
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to each mode, as
@@ -17,6 +27,15 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
  */
 public class Robot extends TimedRobot
 {
+  final CommandJoystick joystickL = new CommandJoystick(0);
+  final CommandJoystick joystickR = new CommandJoystick(1);
+  public double xV = 0;
+  public double yV = 0;
+  public double rV = 0;
+
+  public SlewRateLimiter xfilter = new SlewRateLimiter(4);
+  public SlewRateLimiter yfilter = new SlewRateLimiter(4);
+  public SlewRateLimiter rfilter = new SlewRateLimiter(4);
 
   private static Robot   instance;
   private        Command m_autonomousCommand;
@@ -143,6 +162,44 @@ public class Robot extends TimedRobot
   @Override
   public void teleopPeriodic()
   {
+ // Read joystick axes
+        double xSpeedJoystick = joystickL.getRawAxis(1); // INVERTED
+        if (Math.abs(xSpeedJoystick) < Settings.joystickDeadband) {
+            xSpeedJoystick = 0;
+        }
+        xSpeedJoystick = xfilter.calculate(xSpeedJoystick);
+
+        double ySpeedJoystick = joystickL.getRawAxis(0); // INVERTED
+        if (Math.abs(ySpeedJoystick) < Settings.joystickDeadband) {
+            ySpeedJoystick = 0;
+        }
+        ySpeedJoystick = yfilter.calculate(ySpeedJoystick);
+        
+        double rSpeedJoystick = -joystickR.getRawAxis(2);
+        if (Math.abs(rSpeedJoystick) < Settings.joystickDeadband) {
+            rSpeedJoystick = 0;
+        }
+        rSpeedJoystick = rfilter.calculate(rSpeedJoystick);
+        // Flip for red alliance (field-centric coordinate system)
+        Optional<Alliance> alliance = DriverStation.getAlliance();
+        if (alliance.isPresent() && alliance.get().equals(Alliance.Red)) {
+            xSpeedJoystick = -xSpeedJoystick;
+            ySpeedJoystick = -ySpeedJoystick;
+        }
+
+        // Cube inputs for smoother control
+        double xInput = Math.pow(xSpeedJoystick, 3);
+        double yInput = Math.pow(ySpeedJoystick, 3);
+        double rInput = Math.pow(rSpeedJoystick, 3);
+
+        // Convert to velocities
+          xV = xInput * RobotContainer.drivebase.getMaximumVelocity();
+          yV = yInput * RobotContainer.drivebase.getMaximumVelocity();
+          rV = rInput * RobotContainer.drivebase.getMaximumChassisAngularVelocity();
+        RobotContainer.drivebase.drive(xV, yV, rV, true);
+
+
+
   }
 
   @Override

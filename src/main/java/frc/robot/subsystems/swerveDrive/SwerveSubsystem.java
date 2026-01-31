@@ -6,6 +6,15 @@ package frc.robot.subsystems.swerveDrive;
 
 import static edu.wpi.first.units.Units.Meter;
 
+import java.io.File;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.DoubleSupplier;
+import java.util.function.Supplier;
+
+import org.json.simple.parser.ParseException;
+
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.commands.PathPlannerAuto;
 import com.pathplanner.lib.commands.PathfindingCommand;
@@ -17,6 +26,7 @@ import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.util.DriveFeedforwards;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
+
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -32,13 +42,6 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine.Config;
 import frc.robot.Constants;
-import java.io.File;
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.DoubleSupplier;
-import java.util.function.Supplier;
-import org.json.simple.parser.ParseException;
 import swervelib.SwerveController;
 import swervelib.SwerveDrive;
 import swervelib.SwerveDriveTest;
@@ -492,6 +495,9 @@ public class SwerveSubsystem extends SubsystemBase
    *
    * @param trajectory The trajectory to post.
    */
+
+  
+
   public void postTrajectory(Trajectory trajectory)
   {
     swerveDrive.postTrajectory(trajectory);
@@ -554,6 +560,26 @@ public class SwerveSubsystem extends SubsystemBase
   {
     return getPose().getRotation();
   }
+  
+    public void drive(double vx, double vy, double vr, boolean fieldCentric) {
+        if (fieldCentric) {
+            swerveDrive.driveFieldOriented(new ChassisSpeeds(vx, vy, vr));
+        } else {
+            swerveDrive.drive(new ChassisSpeeds(vx, vy, vr));
+        }
+    }
+
+    public double getMaximumVelocity()
+  {
+    return swerveDrive.getMaximumChassisVelocity();
+  }
+
+
+      public double getMaximumChassisAngularVelocity()
+  {
+    return swerveDrive.getMaximumChassisAngularVelocity();
+  }
+  
 
   /**
    * Get the chassis speeds based on controller input of 2 joysticks. One for speeds in which direction. The other for
