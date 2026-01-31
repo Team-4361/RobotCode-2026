@@ -1,8 +1,8 @@
-/*
 package frc.robot.subsystems;
 
-Imports */ /*
+/* Imports */
 import frc.robot.Constants;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import com.revrobotics.spark.SparkMax;
@@ -11,49 +11,46 @@ import com.revrobotics.spark.config.EncoderConfig;
 import com.revrobotics.RelativeEncoder;
 
 public class ClimberSubsystem extends Command {
-    private SparkMax linearActuator1;
-    private SparkMax linearActuator2;
-    private RelativeEncoder linearActuatorPos;
-    private RelativeEncoder linearActuatorPos2;
-    private RelativeEncoder linearActuatorEncoder1;
-    private RelativeEncoder linearActuatorEncoder2;
+    private SparkMax linearActuator;
+    private RelativeEncoder linearActuatorPosID1;
+    private RelativeEncoder linearActuatorPosID2;
+    private RelativeEncoder linearActuatorEncoderID1;
+    private RelativeEncoder linearActuatorEncoderID2;
+    private PIDController linearActuatorPID;
+
+    private double targetPosition = 0.0;
 
     public ClimberSubsystem() 
     {
-        /* Declares Sparkmax and Position
-        linearActuator1 = new SparkMax(Constants.climberConstants.SPARKMAX_ID, MotorType.kBrushless);
-        linearActuatorEncoder1 = linearActuator1.getEncoder();
-        linearActuatorEncoder2 = linearActuator2.getEncoder();
-        linearActuatorPos.setPosition(Constants.climberConstants.climberZero1); //Sets the zero
-        linearActuatorPos.setPosition(Constants.climberConstants.climberZero2); //Sets the zero
+        /* Declares Sparkmax and Position */
+        linearActuator = new SparkMax(Constants.climberConstants.RSPARKMAX_ID, MotorType.kBrushless);
+        linearActuator = new SparkMax(Constants.climberConstants.LSPARKMAX_ID, MotorType.kBrushless);
+        //linearActuatorEncoderID1 = linearActuatorEncoderID1.getEncoder(); //getEncoder doesn't exist yet, will be implemented later.
+        //linearActuatorEncoderID2 = linearActuatorEncoderID2.getEncoder(); 
+        linearActuatorPosID1.setPosition(Constants.climberConstants.climberZero); //Sets the zero
+        linearActuatorPosID2.setPosition(Constants.climberConstants.climberZero);
+
+        double currentPos = linearActuatorPosID1.getPosition(); 
+        double pidOutput = linearActuatorPID.calculate(currentPos, targetPosition);
+        pidOutput = Math.max(-1.0, Math.min(1.0, pidOutput));
+        linearActuator.set(pidOutput);
+        linearActuatorPID = new PIDController(Constants.climberConstants.kP, Constants.climberConstants.kI, Constants.climberConstants.kD);   
     }
 
     public void periodic() {}
 
-    //Moves the linear actuator up (negative is down)
-    public void moveDown1() {
-        linearActuator1.set(-Constants.climberConstants.climberSpeed1);
+    //Moves the linear actuator up (postitive is down)
+    public void moveDown() {
+        linearActuator.set(Constants.climberConstants.climberSpeed);
     }
 
-    public void moveDown2() {
-        linearActuator2.set(-Constants.climberConstants.climberSpeed2);
-    }
-
-    //Moves the linear actuator up (positive is up)
-    public void moveUp1() {
-        linearActuator1.set(Constants.climberConstants.climberSpeed1);
-    }
-
-    public void moveUp2() {
-        linearActuator2.set(Constants.climberConstants.climberSpeed2);
+    //Moves the linear actuator up (negative is up)
+    public void moveUp() {
+        linearActuator.set(-Constants.climberConstants.climberSpeed); 
     }
 
     //Stops the Linear Actuator
-    public void stopLinearActuator1() { 
-        linearActuator1.set(0);
-    }
-    public void stopLinearActuator2() { 
-        linearActuator1.set(0);
+    public void stopLinearActuator() { 
+        linearActuator.set(0);
     }
 }
-*/ //idk if this is linked to my code just playing it safe - Jordan
