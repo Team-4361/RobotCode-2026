@@ -40,7 +40,7 @@ public final class Constants
     public static final double kMinOutput = -1.0; 
     public static final double climberZero = 0.0; //Declares the zero for the climber
     public static final double climberSpeed = 0.25; //Linear Actuator Speed; Mess around/test later
-    //public static final double winchSpeed = 0.5; //Winch Motor Speed
+    public static final double winchSpeed = 0.5; //Winch Motor Speed
   }
 
   
