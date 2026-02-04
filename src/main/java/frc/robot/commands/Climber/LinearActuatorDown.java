@@ -13,7 +13,7 @@ public class LinearActuatorDown extends Command{
 
 @Override
     public void initialize(){
-        linearActuator.moveLinearActuatorDown();;
+        linearActuator.moveLinearActuatorDown();
     }
 
 
