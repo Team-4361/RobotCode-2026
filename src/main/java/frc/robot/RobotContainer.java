@@ -206,8 +206,8 @@ public class RobotContainer
 
       driverXbox.start().whileTrue(Commands.none());
       driverXbox.back().whileTrue(Commands.none());
-      driverXbox.a().whileTrue(new IntakeCommand(null, 0));
-      driverXbox.b().whileTrue(new HopperCommand(null));
+      driverXbox.a().whileTrue(new IntakeCommand(intake, 0));
+      driverXbox.b().whileTrue(new HopperCommand(hopper));
       driverXbox.x().whileTrue(new ShooterCommand(null, 0, 0));
       //driverXbox.y().whileTrue(new ClimberCommand());
       driverXbox.leftBumper().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
