@@ -3,21 +3,22 @@ package frc.robot.commands.Climber;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.subsystems.ClimberSubsystem;
 
-public class LinearActuatorDownID1 extends Command{
+public class LinearActuatorUp extends Command{
     public final ClimberSubsystem linearActuator;
-    public LinearActuatorDownID1(ClimberSubsystem subsystem) {
+    public LinearActuatorUp(ClimberSubsystem subsystem) {
         this.linearActuator = subsystem;
 
+        addRequirements(linearActuator);
     }
 
 @Override
     public void initialize(){
-        linearActuator.moveDown();;
+        linearActuator.moveLinearActuatorUp();;
     }
 
 
     public void execute(){
-        linearActuator.moveDown();
+        linearActuator.moveLinearActuatorUp();
     }
 
     public void end() {
