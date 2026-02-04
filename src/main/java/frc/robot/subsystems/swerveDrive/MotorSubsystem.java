@@ -11,7 +11,7 @@ private final SparkMax motor;  //create the sparkmax motor object
 private final RelativeEncoder encoder; // create the relative encoder that is attached to the motor, could change to alt 
 private final PIDController pidController; //create the pidcontroller object, needs 3 values
 
-private static final int MOTOR_ID = 6; // the id of the sparkmax that the motor is attached  
+private static final int MOTOR_ID = 12; // the id of the sparkmax that the motor is attached  
 private static final int CPR = 42; // Encoder counts per revolution, was 2048 with the talon lea 42 for neo550
 private static final double KP = 0.0666; // the P value of the PID controller, porportional 
 private static final double KI = 0.00002; // the I value of the PID controller, intergral
@@ -78,22 +78,12 @@ public double getCurrentAngle(){
 public double getTargetAngle(){
     return targetAngle1; //gets a target angle
 }
+public void startMotor() {
+    motor.set(20.0);
+}
+
 @Override
 public void periodic() {
-    double currentAngle = encoder.getPosition(); //gets the position of the Motor
-    double pidOutput = pidController.calculate(currentAngle, targetAngle1); //tells the Motor its PID value
 
-    pidOutput = Math.max(-1, Math.min(1, pidOutput)); //PID stuff
-
-    pidOutput *= MAX_POWER;
-
-    if (!pidController.atSetpoint()) {
-        motor.set(pidOutput);
-    } else {
-        motor.set(0);
-    }
-    //SmartDashboard.putNumber("current angle", currentAngle);
-    //SmartDashboard.putNumber("target angle", targetAngle1);
-   // SmartDashboard.putNumber("pid output", pidOutput);
 }
 }

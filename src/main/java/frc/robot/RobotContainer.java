@@ -26,8 +26,12 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.commands.test.MotorCommand;
+import frc.robot.commands.test.stopMotorCommand;
+import frc.robot.subsystems.swerveDrive.MotorSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 import java.io.File;
+import java.net.SocketPermission;
 import java.util.Optional;
 
 import swervelib.SwerveInputStream;
@@ -44,6 +48,7 @@ public class RobotContainer
 
   // Replace with CommandPS4Controller or CommandJoystick if needed
   final CommandJoystick joystickL = new CommandJoystick(0);
+  private final MotorSubsystem motor = new MotorSubsystem();
   final CommandJoystick joystickR = new CommandJoystick(1);
   double xV = 0;
   double yV = 0;
@@ -129,6 +134,9 @@ public class RobotContainer
   public RobotContainer()
   {
     // Configure the trigger bindings
+    NamedCommands.registerCommand("motor", new MotorCommand(motor));
+    NamedCommands.registerCommand("motor2", new stopMotorCommand(motor));
+
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
 
