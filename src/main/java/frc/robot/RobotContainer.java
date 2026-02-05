@@ -15,6 +15,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotBase;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -24,6 +25,12 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.commands.Hopper.HopperCommand;
+import frc.robot.commands.Intake.IntakeCommand;
+import frc.robot.commands.Shooter.ShooterCommand;
+import frc.robot.subsystems.HopperSubsystem;
+import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 
 import java.io.File;
@@ -46,6 +53,11 @@ public class RobotContainer
 
   // Establish a Sendable Chooser that will be able to be sent to the SmartDashboard, allowing selection of desired auto
   private SendableChooser<Command> autoChooser;
+
+  private final IntakeSubsystem intake = new IntakeSubsystem();
+  private final HopperSubsystem hopper = new HopperSubsystem();
+  private final ShooterSubsystem shooter = new ShooterSubsystem();
+
 
   /**
    * Converts driver input into a field-relative ChassisSpeeds that is controlled by angular velocity.
@@ -194,8 +206,11 @@ public class RobotContainer
 
       driverXbox.start().whileTrue(Commands.none());
       driverXbox.back().whileTrue(Commands.none());
+      driverXbox.a().whileTrue(new IntakeCommand(intake, 0));
+      driverXbox.b().whileTrue(new HopperCommand(hopper));
+      driverXbox.x().whileTrue(new ShooterCommand(null, 0, 0));
+      //driverXbox.y().whileTrue(new ClimberCommand());
       driverXbox.leftBumper().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
-      driverXbox.rightBumper().onTrue(Commands.none());
       joystickL.button(5).onTrue(Commands.runOnce(() -> drivebase.resetOdometry(new Pose2d(0, 0, new Rotation2d(Math.PI)))));
       joystickL.button(3).onTrue(Commands.runOnce(() -> drivebase.resetOdometry(new Pose2d(15.511, 6.537, new Rotation2d()))));
 

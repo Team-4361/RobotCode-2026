@@ -20,7 +20,7 @@ public class ShooterSubsystem extends SubsystemBase
 {
     private final TalonFX shooterKraken;
     private final SparkFlex indexVortex;
-    private MotionMagicVelocityVoltage talonController;
+    //private MotionMagicVelocityVoltage talonController;
         public ShooterSubsystem()
         {
             shooterKraken = new TalonFX(0); //add to constants  
@@ -31,7 +31,7 @@ public class ShooterSubsystem extends SubsystemBase
             currentLimitsConfigs.StatorCurrentLimitEnable = true;
             shooterKraken.getConfigurator().refresh(currentLimitsConfigs);
             shooterKraken.getConfigurator().apply(currentLimitsConfigs);
-            talonController = new MotionMagicVelocityVoltage(0);
+            //talonController = new MotionMagicVelocityVoltage(0);
         indexVortex = new SparkFlex(0, MotorType.kBrushless); 
         SparkFlexConfig config = new SparkFlexConfig();
         config.idleMode(IdleMode.kBrake);
@@ -57,6 +57,15 @@ public class ShooterSubsystem extends SubsystemBase
    {
         shooterKraken.stopMotor();
         
+   }
+   public void stopIndexer()
+   {
+        indexVortex.stopMotor();
+   }
+   public void stopMotors()
+   {
+        shooterKraken.stopMotor();
+        indexVortex.stopMotor();
    }
    public double getRPM()
    {
