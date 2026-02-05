@@ -28,8 +28,8 @@ public final class Constants
   // Maximum speed of the robot in meters per second, used to limit acceleration.
 
   public static final class climberConstants {
-    public static final int RSPARKMAX_ID = 67; //Declares the SparkMax used for the climber
-    public static final int LSPARKMAX_ID = 67; //Declares the SparkMax used for the climber
+    public static final int RSPARKMAX_ID = 6; //Declares the SparkMax used for the climber
+    public static final int LSPARKMAX_ID = 7; //Declares the SparkMax used for the climber
     //Climber PID Constants
     public static final double kP = 0.1;  //TODO: Test PID for the linear actuators (If needed)
     public static final double kI = 0.0;  //PID Stands for Proportional-Integral-Derivative
