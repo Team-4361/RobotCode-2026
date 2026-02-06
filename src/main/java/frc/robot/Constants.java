@@ -71,7 +71,7 @@ public final class Constants
 
   public static class IntakeConstants
   {
-    // Intake Neo
+    //intake neo
     public static final int INTAKENEO = 0;
   }
 }

@@ -204,8 +204,8 @@ public class RobotContainer
     {
       joystickL.button(12).onTrue((Commands.runOnce(drivebase::zeroGyro)));     
 
-      driverXbox.start().whileTrue(Commands.none());
-      driverXbox.back().whileTrue(Commands.none());
+      //driverXbox.start().whileTrue(Commands.none());
+      //driverXbox.back().whileTrue(Commands.none());
       driverXbox.a().whileTrue(new IntakeCommand(intake, 0));
       driverXbox.b().whileTrue(new HopperCommand(hopper));
       driverXbox.x().whileTrue(new ShooterCommand(null, 0, 0));
