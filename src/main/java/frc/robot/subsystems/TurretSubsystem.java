@@ -23,6 +23,7 @@ import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.controller.ArmFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.math.util.Units;
@@ -45,6 +46,14 @@ public class TurretSubsystem extends SubsystemBase {
   
   // Current desired angle (in degrees)
   private double desiredAngleDegrees = 0.0;
+  
+  // Turret offset from robot center (Transform2d)
+  // Positive X = forward, Positive Y = left
+  // Example: Turret is 0.2m forward and 0.1m left of robot center
+  private Transform2d turretOffset = new Transform2d(
+    new Translation2d(0.2, 0.1),  // Change these values to match your robot!
+    new Rotation2d()  // No rotation offset
+  );
   
   // Turret angle limits (in degrees, robot-relative)
   private static final double MIN_TURRET_ANGLE = -180.0;
@@ -159,6 +168,15 @@ public class TurretSubsystem extends SubsystemBase {
   }
   
   /**
+   * Set the target pose on the field that the turret should aim at
+   * This extracts the translation (x, y) from the pose
+   * @param targetPose Field-relative pose of the target
+   */
+  public void setTargetPose(Pose2d targetPose) {
+    this.targetPosition = targetPose.getTranslation();
+  }
+  
+  /**
    * Set the target position on the field using x and y coordinates
    * @param x X coordinate in meters
    * @param y Y coordinate in meters
@@ -172,7 +190,8 @@ public class TurretSubsystem extends SubsystemBase {
    * This accounts for:
    * 1. Robot position on field
    * 2. Robot rotation
-   * 3. Turret angle limits (-180 to 180 degrees)
+   * 3. Turret offset from robot center (using Transform2d)
+   * 4. Turret angle limits (-180 to 180 degrees)
    * @return Required turret angle in degrees (robot-relative, -180 to 180)
    */
   public double calculateTurretAngle() {
@@ -183,14 +202,18 @@ public class TurretSubsystem extends SubsystemBase {
     
     // Get current robot pose from YAGSL
     Pose2d robotPose = swerveSubsystem.getPose();
-    Translation2d robotPosition = robotPose.getTranslation();
+    
+    // Calculate the ACTUAL turret position on the field
+    // This transforms the turret offset by the robot's pose
+    Pose2d turretPose = robotPose.plus(turretOffset);
+    Translation2d turretPosition = turretPose.getTranslation();
     Rotation2d robotRotation = robotPose.getRotation();
     
-    // Calculate vector from robot to target
-    Translation2d robotToTarget = targetPosition.minus(robotPosition);
+    // Calculate vector from TURRET position to target
+    Translation2d turretToTarget = targetPosition.minus(turretPosition);
     
-    // Calculate field-relative angle to target
-    double fieldRelativeAngle = Math.atan2(robotToTarget.getY(), robotToTarget.getX());
+    // Calculate field-relative angle to target (from turret's perspective)
+    double fieldRelativeAngle = Math.atan2(turretToTarget.getY(), turretToTarget.getX());
     fieldRelativeAngle = Math.toDegrees(fieldRelativeAngle);
     
     // Convert to robot-relative angle
@@ -276,7 +299,7 @@ public class TurretSubsystem extends SubsystemBase {
   }
   
   /**
-   * Get distance to target
+   * Get distance to target (from turret position, not robot center)
    * @return Distance to target in meters
    */
   public double getDistanceToTarget() {
@@ -284,8 +307,46 @@ public class TurretSubsystem extends SubsystemBase {
       return 0.0;
     }
     Pose2d robotPose = swerveSubsystem.getPose();
-    Translation2d robotPosition = robotPose.getTranslation();
-    return robotPosition.getDistance(targetPosition);
+    // Calculate actual turret position using the offset
+    Pose2d turretPose = robotPose.plus(turretOffset);
+    Translation2d turretPosition = turretPose.getTranslation();
+    return turretPosition.getDistance(targetPosition);
+  }
+  
+  /**
+   * Set the turret offset from robot center
+   * @param offset Transform2d representing turret position relative to robot center
+   */
+  public void setTurretOffset(Transform2d offset) {
+    this.turretOffset = offset;
+  }
+  
+  /**
+   * Set the turret offset using x and y coordinates
+   * @param x X offset in meters (positive = forward)
+   * @param y Y offset in meters (positive = left)
+   */
+  public void setTurretOffset(double x, double y) {
+    this.turretOffset = new Transform2d(new Translation2d(x, y), new Rotation2d());
+  }
+  
+  /**
+   * Get the current turret offset
+   * @return Transform2d representing turret offset from robot center
+   */
+  public Transform2d getTurretOffset() {
+    return turretOffset;
+  }
+  
+  /**
+   * Get the actual turret position on the field
+   * @return Pose2d of the turret on the field
+   */
+  public Pose2d getTurretPose() {
+    if (swerveSubsystem == null) {
+      return new Pose2d();
+    }
+    return swerveSubsystem.getPose().plus(turretOffset);
   }
 
   // ========== FIELD-RELATIVE AIMING COMMANDS ==========
@@ -303,6 +364,18 @@ public class TurretSubsystem extends SubsystemBase {
   }
   
   /**
+   * Creates a command to continuously aim at a target pose
+   * @param targetPose Field-relative target pose
+   * @return A command that aims the turret at the target
+   */
+  public Command aimAtTargetCommand(Pose2d targetPose) {
+    return run(() -> {
+      setTargetPose(targetPose);
+      aimAtTarget();
+    });
+  }
+  
+  /**
    * Creates a command to aim at a target and wait until on target
    * @param target Field-relative target position (x, y in meters)
    * @param timeoutSeconds Maximum time to wait
@@ -310,6 +383,18 @@ public class TurretSubsystem extends SubsystemBase {
    */
   public Command aimAndWaitCommand(Translation2d target, double timeoutSeconds) {
     return aimAtTargetCommand(target)
+      .until(() -> atSetpoint())
+      .withTimeout(timeoutSeconds);
+  }
+  
+  /**
+   * Creates a command to aim at a target pose and wait until on target
+   * @param targetPose Field-relative target pose
+   * @param timeoutSeconds Maximum time to wait
+   * @return A command that aims and waits
+   */
+  public Command aimAndWaitCommand(Pose2d targetPose, double timeoutSeconds) {
+    return aimAtTargetCommand(targetPose)
       .until(() -> atSetpoint())
       .withTimeout(timeoutSeconds);
   }
@@ -335,6 +420,13 @@ public class TurretSubsystem extends SubsystemBase {
       SmartDashboard.putNumber("Turret/Robot X", robotPose.getX());
       SmartDashboard.putNumber("Turret/Robot Y", robotPose.getY());
       SmartDashboard.putNumber("Turret/Robot Rotation", robotPose.getRotation().getDegrees());
+      
+      // Show actual turret position on field
+      Pose2d turretPose = getTurretPose();
+      SmartDashboard.putNumber("Turret/Turret X", turretPose.getX());
+      SmartDashboard.putNumber("Turret/Turret Y", turretPose.getY());
+      SmartDashboard.putNumber("Turret/Offset X", turretOffset.getX());
+      SmartDashboard.putNumber("Turret/Offset Y", turretOffset.getY());
     }
   }
 
