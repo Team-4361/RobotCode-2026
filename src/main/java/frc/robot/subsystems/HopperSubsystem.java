@@ -1,6 +1,5 @@
 package frc.robot.subsystems;
 
-// I don't know if these are the right import
 import frc.robot.Constants;
 import com.revrobotics.spark.SparkMax;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
@@ -67,7 +66,7 @@ private static final double FEED_SPEED = 0.5;*/
 
   @Override
   public void periodic()
-     {
+    {
 
     }
 }

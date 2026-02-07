@@ -10,13 +10,9 @@ import com.revrobotics.spark.SparkBase.ControlType;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import frc.robot.Constants;
-import com.revrobotics.spark.SparkClosedLoopController;
-import edu.wpi.first.math.trajectory.ExponentialProfile.Constraints;
-import edu.wpi.first.wpilibj.Encoder;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
-import com.revrobotics.spark.ClosedLoopSlot;
-import com.revrobotics.spark.FeedbackSensor;
+import edu.wpi.first.wpilibj2.command.Command;
 
 public class IntakeSubsystem extends SubsystemBase
 {
@@ -52,7 +48,7 @@ public class IntakeSubsystem extends SubsystemBase
     }
     public void set()
     {
-        //.closedLoopController.setSetpoint(10, ControlType.kVelocity); // 10 RPM
+        //closedLoopController.setSetpoint(10, ControlType.kVelocity); // 10 RPM
     }
     
 }
