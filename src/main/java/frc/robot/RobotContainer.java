@@ -26,9 +26,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
-import frc.robot.commands.test.MotorCommand;
-import frc.robot.commands.test.stopMotorCommand;
-import frc.robot.subsystems.swerveDrive.MotorSubsystem;
+import frc.robot.subsystems.SparkMaxSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 import java.io.File;
 import java.net.SocketPermission;
@@ -48,7 +46,7 @@ public class RobotContainer
 
   // Replace with CommandPS4Controller or CommandJoystick if needed
   final CommandJoystick joystickL = new CommandJoystick(0);
-  private final MotorSubsystem motor = new MotorSubsystem();
+  private final SparkMaxSubsystem sparkMaxSubsystem = new SparkMaxSubsystem(12);
   final CommandJoystick joystickR = new CommandJoystick(1);
   double xV = 0;
   double yV = 0;
@@ -128,17 +126,21 @@ public class RobotContainer
     .allianceRelativeControl(true)
 );
 
+
+
+
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
    */
   public RobotContainer()
   {
     // Configure the trigger bindings
-    NamedCommands.registerCommand("motor", new MotorCommand(motor));
-    NamedCommands.registerCommand("motor2", new stopMotorCommand(motor));
+    registerNamedCommands();
+
 
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
+
 
 
     //Put the autoChooser on the SmartDashboard
@@ -149,8 +151,38 @@ public class RobotContainer
 
     if (autoChooser.getSelected() == null ) {
     RobotModeTriggers.autonomous().onTrue(Commands.runOnce(drivebase::zeroGyroWithAlliance));
+
+
     }
+
   }
+
+
+  private void registerNamedCommands() {
+
+        
+        // Run motor at 50% speed
+        NamedCommands.registerCommand("RunMotor", 
+            sparkMaxSubsystem.runMotorCommand(0.5));
+        
+        // Run motor at full speed
+        NamedCommands.registerCommand("RunMotorFull", 
+            sparkMaxSubsystem.runMotorCommand(1.0));
+        
+        // Run motor backward at 50% speed
+        NamedCommands.registerCommand("RunMotorReverse", 
+            sparkMaxSubsystem.runMotorCommand(-0.5));
+        
+        // Stop motor
+        NamedCommands.registerCommand("StopMotor", 
+            sparkMaxSubsystem.stopMotorCommand());
+        
+        // Run motor for specific duration 
+        NamedCommands.registerCommand("RunMotorTimed", 
+            sparkMaxSubsystem.runMotorCommand(0.3).withTimeout(2.0));
+
+
+      }
 
   /**
    * Use this method to define your trigger->command mappings. Triggers can be created via the
