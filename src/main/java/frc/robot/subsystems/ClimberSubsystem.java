@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 /* Imports */
 import frc.robot.Constants;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import com.revrobotics.spark.SparkMax;
@@ -42,11 +43,20 @@ public class ClimberSubsystem extends SubsystemBase {
     //Moves the linear actuator up (postitive is down)
     public void moveLinearActuatorDown() {
         linearActuator.set(Constants.climberConstants.climberSpeed);
+        Timer.delay(targetPosition);
+        stopLinearActuator();
     }
+    /*
+     * Timer.delay(targetPosition) is intended to reach the distance in cm as fast as possible
+     * It needs some testing to reach the correct position multiply the amount of time it takes to reach the spot
+     * Unsure if this subsystem will work.
+     */
 
     //Moves the linear actuator up (negative is up)
     public void moveLinearActuatorUp() {
         linearActuator.set(-Constants.climberConstants.climberSpeed); 
+        Timer.delay(targetPosition);
+        stopLinearActuator();
     }
 
     //Stops the Linear Actuator
