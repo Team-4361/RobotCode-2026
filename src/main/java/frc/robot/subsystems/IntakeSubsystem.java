@@ -18,7 +18,7 @@ public class IntakeSubsystem extends SubsystemBase
 {
     private final SparkFlex sparkFlex;
     private final RelativeEncoder encoder;
-    private double targetRPM = 69.11;
+    private double targetRPM = 100.00;
     private final double kP = 0.1;
     private final double kI = 0.001;
     private final double kD = 0.00;
