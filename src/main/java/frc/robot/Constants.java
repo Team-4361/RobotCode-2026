@@ -31,15 +31,16 @@ public final class Constants
     public static final int RSPARKMAX_ID = 67; //Declares the SparkMax used for the climber
     public static final int LSPARKMAX_ID = 67; //Declares the SparkMax used for the climber
     //Climber PID Constants
-    public static final double kP = 0.1;  //TODO: Test PID for the linear actuators (If needed)
-    public static final double kI = 0.0;  //PID Stands for Proportional-Integral-Derivative
-    public static final double kD = 0.0; 
+    public static final double kP = 0.05; //PID Stands for Proportional-Integral-Derivative
+    public static final double kI = 0.0;  
+    public static final double kD = 0.002; 
     public static final double kIz = 0.0;
     public static final double kFF = 0.0;
     public static final double kMaxOutput = 1.0;
     public static final double kMinOutput = -1.0; 
-    public static final double climberZero = 0.0; //Declares the zero for the climber
-    public static final double climberSpeed = 0.25; //Linear Actuator Speed; Mess around/test later
+    public static final double climberPositionTolerance = 0.001;
+    //public static final double climberZero = 0.0; //Declares the zero for the climber
+    //public static final double climberSpeed = 0.25; //Linear Actuator Speed; Mess around/test later
     public static final double winchSpeed = 0.5; //Winch Motor Speed
   }
   
