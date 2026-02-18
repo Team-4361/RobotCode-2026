@@ -28,6 +28,7 @@ public class ClimberSubsystem extends SubsystemBase {
     private double leftCurrentPos = rightLAencoder.getPosition();
     private double aveCurretPos = (rightCurrentPos + leftCurrentPos) / 2; 
     private double error = targetPosition - aveCurretPos;
+    private double pidOutput;
 
     public ClimberSubsystem() 
     {
@@ -41,7 +42,6 @@ public class ClimberSubsystem extends SubsystemBase {
         //linearActuatorPos.setPosition(Constants.climberConstants.climberZero); idk if we need this?
         //linearActuatorPID = new PIDController(Constants.climberConstants.kP, Constants.climberConstants.kI, Constants.climberConstants.kD);   
         //winchEncoder.setPosition(0); winch doesn't have to be complex      
-          
     }
 
     public void periodic() 
@@ -51,7 +51,7 @@ public class ClimberSubsystem extends SubsystemBase {
         double derivative = (error - previousError) / 0.02;
 
         // Calculate PID output
-        double pidOutput = (Constants.climberConstants.kP * error) + (Constants.climberConstants.kI * integral) + (Constants.climberConstants.kD * derivative);
+        pidOutput = (Constants.climberConstants.kP * error) + (Constants.climberConstants.kI * integral) + (Constants.climberConstants.kD * derivative);
     
         // Limit the PID output to the motor speed range
         pidOutput = Math.max(-1.0, Math.min(1.0, pidOutput)); // Limit between -1.0 and 1.0
@@ -102,10 +102,10 @@ public class ClimberSubsystem extends SubsystemBase {
         winchMotor.set(0);
     }
 
-     public Command moveToAngleCommand(double angleDegrees) {
-        return run(() -> setAngle(angleDegrees))
-      .until(() -> atSetpoint(2.0));
-    }
+
+
+
+    
     public void moveLinearActuatorPos(double targetPosition)
     {
         // Set the motor output
@@ -117,7 +117,7 @@ public class ClimberSubsystem extends SubsystemBase {
         }
         // Update the previous error
         previousError = error;
-        
+    
     }
 
 }
