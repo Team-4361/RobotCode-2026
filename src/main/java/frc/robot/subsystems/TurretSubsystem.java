@@ -214,15 +214,7 @@ public class TurretSubsystem extends SubsystemBase {
     desiredAngleDegrees = targetAngle;
     setAngle(targetAngle);
   }
-  /**
-   * Check if turret is at the desired angle
-   * @param tolerance Tolerance in degrees
-   * @return True if within tolerance
-   */
-  public boolean atSetpoint(double tolerance) {
-    double currentAngle = Units.radiansToDegrees(getPositionRadians());
-    return Math.abs(currentAngle - desiredAngleDegrees) < tolerance;
-  }
+
   
   /**
    * Get distance to target (from turret position, not robot center)
@@ -477,6 +469,53 @@ public class TurretSubsystem extends SubsystemBase {
   }
 
   // ========== COMMANDS ==========
+
+  public Command aimAtTargetCommand(Translation2d target) {
+    return run(() -> {
+      setTargetPosition(target);
+      aimAtTarget();
+    });
+  }
+  
+  /**
+   * Creates a command to continuously aim at a target pose
+   * @param targetPose Field-relative target pose
+   * @return A command that aims the turret at the target
+   */
+  public Command aimAtTargetCommand(Pose2d targetPose) {
+    return run(() -> {
+      setTargetPose(targetPose);
+      aimAtTarget();
+    });
+  }
+  
+  /**
+   * Creates a command to aim at a target and wait until on target
+   * @param target Field-relative target position (x, y in meters)
+   * @param timeoutSeconds Maximum time to wait
+   * @return A command that aims and waits
+   */
+  public Command aimAndWaitCommand(Translation2d target, double timeoutSeconds) {
+    return aimAtTargetCommand(target)
+      .until(() -> atSetpoint())
+      .withTimeout(timeoutSeconds);
+  }
+  
+  /**
+   * Creates a command to aim at a target pose and wait until on target
+   * @param targetPose Field-relative target pose
+   * @param timeoutSeconds Maximum time to wait
+   * @return A command that aims and waits
+   */
+  public Command aimAndWaitCommand(Pose2d targetPose, double timeoutSeconds) {
+    return aimAtTargetCommand(targetPose)
+      .until(() -> atSetpoint())
+      .withTimeout(timeoutSeconds);
+  }
+
+
+
+
 
   /**
    * Creates a command to set the turret to a specific angle.
