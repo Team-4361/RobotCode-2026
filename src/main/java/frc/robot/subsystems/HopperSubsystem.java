@@ -45,14 +45,9 @@ private static final double FEED_SPEED = 0.5;*/
   // Stops 
   public void stopHopper()
   {
-    hopperMotor.set(0);
+    hopperMotor.stopMotor();
   }
 
-  
-  public void hopperSpeed(double speed)
-  {
-    hopperMotor.set(speed);
-  }
 
   public double getHopperSpeed()
   {
