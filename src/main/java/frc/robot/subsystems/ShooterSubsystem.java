@@ -1,66 +1,70 @@
 package frc.robot.subsystems;
 
-import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
-import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.MotionMagicVelocityVoltage;
-import com.ctre.phoenix6.hardware.TalonFX;
-import com.ctre.phoenix6.signals.NeutralModeValue;
-import com.revrobotics.PersistMode;
-import com.revrobotics.ResetMode;
-import com.revrobotics.spark.SparkFlex;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.config.SparkFlexConfig;
-import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+import static edu.wpi.first.units.Units.*;
 
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import com.ctre.phoenix6.hardware.TalonFXS;
+
+import edu.wpi.first.math.controller.SimpleMotorFeedforward;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import yams.mechanisms.config.FlyWheelConfig;
+import yams.mechanisms.velocity.FlyWheel;
+import yams.motorcontrollers.SmartMotorController;
+import yams.motorcontrollers.SmartMotorControllerConfig;
+import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
+import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
 
+public class ShooterSubsystem extends SubsystemBase {
 
-public class ShooterSubsystem extends SubsystemBase
-{
-    private final TalonFX shooterKraken;
-    private final SparkFlex indexVortex;
-    private MotionMagicVelocityVoltage talonController;
-        public ShooterSubsystem()
-        {
-            shooterKraken = new TalonFX(0); //add to constants  
-            shooterKraken.getConfigurator().apply(new TalonFXConfiguration());
-            var currentLimitsConfigs =   new CurrentLimitsConfigs();
-            shooterKraken.setNeutralMode(NeutralModeValue.Coast);
-            currentLimitsConfigs.StatorCurrentLimit = 40; // add value to constants 
-            currentLimitsConfigs.StatorCurrentLimitEnable = true;
-            shooterKraken.getConfigurator().refresh(currentLimitsConfigs);
-            shooterKraken.getConfigurator().apply(currentLimitsConfigs);
-            talonController = new MotionMagicVelocityVoltage(0);
-        indexVortex = new SparkFlex(0, MotorType.kBrushless); 
-        SparkFlexConfig config = new SparkFlexConfig();
-        config.idleMode(IdleMode.kBrake);
-        indexVortex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+  private SmartMotorControllerConfig smcConfig = new SmartMotorControllerConfig(this)
+      .withControlMode(ControlMode.CLOSED_LOOP)
+      .withClosedLoopController(50, 0, 0, DegreesPerSecond.of(90), DegreesPerSecondPerSecond.of(45))
+      .withSimClosedLoopController(50, 0, 0, DegreesPerSecond.of(90), DegreesPerSecondPerSecond.of(45))
+      .withFeedforward(new SimpleMotorFeedforward(0, 0, 0))
+      .withSimFeedforward(new SimpleMotorFeedforward(0, 0, 0))
+      .withTelemetry("ShooterMotor", TelemetryVerbosity.HIGH)
+      .withMotorInverted(false)
+      .withIdleMode(MotorMode.COAST)
+      .withStatorCurrentLimit(Amps.of(80))
+      .withClosedLoopRampRate(Seconds.of(0.25))
+      .withOpenLoopRampRate(Seconds.of(0.25));
 
-    } 
+  private TalonFXS krakenMotor = new TalonFXS(4);
+  private SmartMotorController motor = new TalonFXSWrapper(krakenMotor, DCMotor.getKrakenX60(1), smcConfig);
 
-    @Override
-    public void periodic()
-    {
-        //SmartDashboard.putNumber()
-    }
+  private final FlyWheelConfig shooterConfig = new FlyWheelConfig(motor)
+      .withDiameter(Inches.of(4))
+      .withMass(Pounds.of(1))
+      .withUpperSoftLimit(RPM.of(6000))
+      .withTelemetry("Shooter", TelemetryVerbosity.HIGH);
 
-    public void shooterKraken(double speed)
-    {
-        shooterKraken.set(speed);
-    }
-    public void indexVortex(double speed)
-    {
-        indexVortex.set(speed);
-    }
-    public void stopShooter()
-   {
-        shooterKraken.stopMotor();
-        
-   }
-   public double getRPM()
-   {
-         return shooterKraken.getVelocity().getValueAsDouble();
-   }
-    
+  private FlyWheel shooter = new FlyWheel(shooterConfig);
+
+  public ShooterSubsystem() {}
+
+  public AngularVelocity getVelocity() {
+    return shooter.getSpeed();
+  }
+
+  public Command setVelocity(AngularVelocity speed) {
+    // Use run() with a lambda calling setMechanismVelocitySetpoint
+    return shooter.run(() -> shooter.setMechanismVelocitySetpoint(speed));
+  }
+
+  public Command set(double dutyCycle) {
+    return shooter.run(() -> shooter.set(dutyCycle));
+  }
+
+  @Override
+  public void periodic() {
+    shooter.updateTelemetry();
+  }
+
+  @Override
+  public void simulationPeriodic() {
+    shooter.simIterate();
+  }
 }
