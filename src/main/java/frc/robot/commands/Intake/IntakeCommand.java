@@ -1,6 +1,8 @@
 package frc.robot.commands.Intake;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Constants;
 import frc.robot.subsystems.IntakeSubsystem;
 
 public class IntakeCommand extends Command
@@ -13,7 +15,8 @@ public class IntakeCommand extends Command
         {
             this.intake = intake;
             addRequirements(intake);
-            this.speed = speed;
+            this.speed = Constants.IntakeConstants.speed;
+           
         }
     
         @Override

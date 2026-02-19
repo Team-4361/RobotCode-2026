@@ -52,7 +52,6 @@ public class ClimberSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Target Position: ", targetPosition);
         SmartDashboard.putNumber("Current Position: ", aveCurretPos); 
         SmartDashboard.putNumber("PID Output", pidOutput); 
-        SmartDashboard.putNumber("PID Output", pidOutput); 
         SmartDashboard.putNumber("kP", Constants.climberConstants.kP); 
         SmartDashboard.putNumber("kI", Constants.climberConstants.kI);
         SmartDashboard.putNumber("kD", Constants.climberConstants.kD);
