@@ -25,11 +25,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
-import frc.robot.commands.Hopper.HopperCommand;
-import frc.robot.commands.Intake.IntakeCommand;
-import frc.robot.commands.Shooter.ShooterCommand;
-import frc.robot.subsystems.HopperSubsystem;
-import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.commands.Shooter.ShooterComamand;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 
@@ -50,6 +46,7 @@ public class RobotContainer
   final CommandXboxController driverXbox = new CommandXboxController(2);  // The robot's subsystems and commands are defined here...
   private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve/neo"));
+  private final ShooterSubsystem shooter = new ShooterSubsystem();
 
   // Establish a Sendable Chooser that will be able to be sent to the SmartDashboard, allowing selection of desired auto
   private SendableChooser<Command> autoChooser;
@@ -213,7 +210,7 @@ public class RobotContainer
       driverXbox.leftBumper().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
       joystickL.button(5).onTrue(Commands.runOnce(() -> drivebase.resetOdometry(new Pose2d(0, 0, new Rotation2d(Math.PI)))));
       joystickL.button(3).onTrue(Commands.runOnce(() -> drivebase.resetOdometry(new Pose2d(15.511, 6.537, new Rotation2d()))));
-
+    
     }
 
   }
