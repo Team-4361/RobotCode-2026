@@ -1,7 +1,8 @@
 package frc.robot.commands.Hopper;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Constants;
 import frc.robot.subsystems.HopperSubsystem;
-
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 
 
 public class HopperCommand extends Command {
@@ -14,13 +15,13 @@ public class HopperCommand extends Command {
 
     @Override
     public void initialize() {
-          hopperSubsystem.feed(0.5);
+          hopperSubsystem.feed(Constants.HopperConstants.FEED_SPEED);
     }
 
     @Override
     public void execute() {
        
-        hopperSubsystem.feed(0.5);
+        hopperSubsystem.feed(Constants.HopperConstants.FEED_SPEED);
     }
 
     @Override

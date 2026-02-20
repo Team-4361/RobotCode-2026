@@ -11,6 +11,7 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import frc.robot.Constants;
 import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj2.command.Command;
 
@@ -18,10 +19,11 @@ public class IntakeSubsystem extends SubsystemBase
 {
     private final SparkFlex sparkFlex;
     private final RelativeEncoder encoder;
-    private double targetRPM = 100.00;
+
+ /*    private double targetRPM = 100.00;
     private final double kP = 0.1;
     private final double kI = 0.001;
-    private final double kD = 0.00;
+    private final double kD = 0.00; */
 
 
 
@@ -36,7 +38,7 @@ public class IntakeSubsystem extends SubsystemBase
         sparkFlex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         encoder = sparkFlex.getEncoder();
         SparkClosedLoopController closedLoopController = sparkFlex.getClosedLoopController();
-
+         SmartDashboard.putNumber("Intake Speed", Constants.IntakeConstants.speed);
     }
     public void SetMotorSpeed(Double speed) 
     {
@@ -46,9 +48,9 @@ public class IntakeSubsystem extends SubsystemBase
     {
         sparkFlex.stopMotor();
     }
-    public void set()
+    /* public void set()
     {
         //closedLoopController.setSetpoint(10, ControlType.kVelocity); // 10 RPM
-    }
+    } */
     
 }

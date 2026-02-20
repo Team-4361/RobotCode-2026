@@ -71,9 +71,20 @@ public final class Constants
     public static final double TURN_CONSTANT    = 6;
   }
 
+  public static class HopperConstants
+  {
+    public static final double FEED_SPEED = 0.5;
+  }
+
   public static class IntakeConstants
   {
     //intake neo
     public static final int INTAKENEO = 0;
+    public static final double speed = 0.4;
+  }
+
+  public static class ShooterConstants
+  {
+    public static final int StatorCurrentLimit = 40;
   }
 }

@@ -14,6 +14,7 @@ import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 
 
 public class ShooterSubsystem extends SubsystemBase
@@ -27,7 +28,7 @@ public class ShooterSubsystem extends SubsystemBase
             shooterKraken.getConfigurator().apply(new TalonFXConfiguration());
             var currentLimitsConfigs =   new CurrentLimitsConfigs();
             shooterKraken.setNeutralMode(NeutralModeValue.Coast);
-            currentLimitsConfigs.StatorCurrentLimit = 40; // add value to constants 
+            currentLimitsConfigs.StatorCurrentLimit = Constants.ShooterConstants.StatorCurrentLimit; // add value to constants 
             currentLimitsConfigs.StatorCurrentLimitEnable = true;
             shooterKraken.getConfigurator().refresh(currentLimitsConfigs);
             shooterKraken.getConfigurator().apply(currentLimitsConfigs);

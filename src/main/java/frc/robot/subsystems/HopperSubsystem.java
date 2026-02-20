@@ -8,6 +8,8 @@ import com.revrobotics.spark.config.SparkMaxConfig;
 import com.revrobotics.PersistMode;
 import com.revrobotics.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
+
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class HopperSubsystem extends SubsystemBase //hello Jack and Chloe I know you guys are watching me
@@ -27,6 +29,7 @@ private static final double FEED_SPEED = 0.5;*/
     config.idleMode(IdleMode.kCoast); //
     hopperMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
    config.smartCurrentLimit(40);  // limit to protect motor
+    SmartDashboard.putNumber("Feed Speed:", Constants.HopperConstants.FEED_SPEED);
   }
 
 
@@ -45,14 +48,9 @@ private static final double FEED_SPEED = 0.5;*/
   // Stops 
   public void stopHopper()
   {
-    hopperMotor.set(0);
+    hopperMotor.stopMotor();
   }
 
-  
-  public void hopperSpeed(double speed)
-  {
-    hopperMotor.set(speed);
-  }
 
   public double getHopperSpeed()
   {
