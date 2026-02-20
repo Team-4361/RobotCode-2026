@@ -16,6 +16,7 @@ import yams.motorcontrollers.SmartMotorControllerConfig;
 import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
+import yams.motorcontrollers.remote.TalonFXSWrapper;
 
 public class ShooterSubsystem extends SubsystemBase {
 
@@ -45,19 +46,17 @@ public class ShooterSubsystem extends SubsystemBase {
 
   public ShooterSubsystem() {}
 
-  public AngularVelocity getVelocity() {
+public AngularVelocity getVelocity() {
     return shooter.getSpeed();
-  }
+}
 
-  public Command setVelocity(AngularVelocity speed) {
-    // Use run() with a lambda calling setMechanismVelocitySetpoint
-    return shooter.run(() -> shooter.setMechanismVelocitySetpoint(speed));
-  }
+public Command setVelocity(AngularVelocity speed) {
+    return shooter.setSpeed(speed); 
+}
 
-  public Command set(double dutyCycle) {
-    return shooter.run(() -> shooter.set(dutyCycle));
-  }
-
+public Command set(double dutyCycle) {
+    return shooter.set(dutyCycle);  
+}
   @Override
   public void periodic() {
     shooter.updateTelemetry();
