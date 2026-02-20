@@ -4,6 +4,8 @@
 
 package frc.robot;
 
+import com.revrobotics.spark.SparkMax;
+
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
 import swervelib.math.Matter;
@@ -24,6 +26,26 @@ public final class Constants
   public static final double LOOP_TIME  = 0.13; //s, 20ms + 110ms sprk max velocity lag
   public static final double MAX_SPEED  = Units.feetToMeters(14.5);
   // Maximum speed of the robot in meters per second, used to limit acceleration.
+
+  public static final class climberConstants {
+    public static final int RSPARKMAX_ID = 6; //Declares the SparkMax used for the climber
+    public static final int LSPARKMAX_ID = 7; //Declares the SparkMax used for the climber
+    public static final int WINCH_ID = 8;
+    //Climber PID Constants
+    public static final double kP = 0.05;  //Tested PID Values from LinearActuator code 
+    public static final double kI = 0.0;  //PID Stands for Proportional-Integral-Derivative
+    public static final double kD = 0.002; 
+    public static final double POSITION_TOLERANCE = 0.001;
+    //public static final double kIz = 0.0;
+    //public static final double kFF = 0.0;
+    public static final double kMaxOutput = 1.0;
+    public static final double kMinOutput = -1.0; 
+    public static final double climberZero = 0.0; //Declares the zero for the climber
+    public static final double climberSpeed = 0.25; //Linear Actuator Speed; Mess around/test later
+    public static final double winchSpeed = 0.5; //Winch Motor Speed
+  }
+
+  
 
 //  public static final class AutonConstants
 //  {
@@ -47,5 +69,22 @@ public final class Constants
     public static final double LEFT_Y_DEADBAND = 0.1;
     public static final double RIGHT_X_DEADBAND = 0.1;
     public static final double TURN_CONSTANT    = 6;
+  }
+
+  public static class HopperConstants
+  {
+    public static final double FEED_SPEED = 0.5;
+  }
+
+  public static class IntakeConstants
+  {
+    //intake neo
+    public static final int INTAKENEO = 0;
+    public static final double speed = 0.4;
+  }
+
+  public static class ShooterConstants
+  {
+    public static final int StatorCurrentLimit = 40;
   }
 }

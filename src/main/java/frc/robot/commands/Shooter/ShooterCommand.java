@@ -1,19 +1,22 @@
 package frc.robot.commands.Shooter;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.Constants;
 import frc.robot.subsystems.ShooterSubsystem;
-public class ShooterComamand extends Command {
+public class ShooterCommand extends Command {
 private final ShooterSubsystem shooter;
 private final double indexSpeed;
 private final double shooterSpeed;
 
-    public ShooterComamand(ShooterSubsystem shooter, double indexSpeed, double shooterSpeed) {
+    public ShooterCommand(ShooterSubsystem shooter, double indexSpeed, double shooterSpeed) {
         this.shooter = shooter;
-        
         this.indexSpeed = indexSpeed;
         this.shooterSpeed = shooterSpeed;
         // Declare subsystem dependency so no other command can use it at the same time.
         addRequirements(shooter);
+         SmartDashboard.putNumber("Index Speed:", indexSpeed);
+         SmartDashboard.putNumber("Shooter Speed:", shooterSpeed);
     }
 
     @Override
