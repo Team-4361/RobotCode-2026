@@ -27,6 +27,7 @@ import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.HopperSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
@@ -80,6 +81,7 @@ public class RobotContainer
 
   private final IntakeSubsystem  intake  = new IntakeSubsystem();
   private final HopperSubsystem  hopper  = new HopperSubsystem();
+  private final FeederSubsystem  feeder  = new FeederSubsystem();
   private final TurretSubsystem  turret  = new TurretSubsystem(drivebase);
   private final ShooterSubsystem shooter = new ShooterSubsystem();
 
@@ -164,6 +166,11 @@ public class RobotContainer
     NamedCommands.registerCommand("SetTurretAngle_90",  turret.setAngleCommand(90.0));
     NamedCommands.registerCommand("SetTurretAngle_180", turret.setAngleCommand(180.0));
     NamedCommands.registerCommand("SetTurretAngle_-90", turret.setAngleCommand(-90.0));
+
+    //Feeder
+    NamedCommands.registerCommand("runFeeder", 
+            feeder.runMotorCommand(0.5));
+
 
     //Set hopper speed
 
