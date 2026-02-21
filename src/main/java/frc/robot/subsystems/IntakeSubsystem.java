@@ -20,12 +20,6 @@ public class IntakeSubsystem extends SubsystemBase
     private final SparkFlex sparkFlex;
     private final RelativeEncoder encoder;
 
- /*    private double targetRPM = 100.00;
-    private final double kP = 0.1;
-    private final double kI = 0.001;
-    private final double kD = 0.00; */
-
-
 
     public IntakeSubsystem()
     {
@@ -48,9 +42,24 @@ public class IntakeSubsystem extends SubsystemBase
     {
         sparkFlex.stopMotor();
     }
-    /* public void set()
-    {
-        //closedLoopController.setSetpoint(10, ControlType.kVelocity); // 10 RPM
-    } */
+
+    // Command to run the motor at a specified speed
+    public Command runMotorCommand(double speed) {
+        return this.runOnce(
+            () -> SetMotorSpeed(speed));
+    }
     
+    // Command to stop the motor
+    public Command stopMotorCommand() {
+        return this.runOnce(() -> stop());
+    }
+    
+    @Override
+    public void periodic() {
+        // This method will be called once per scheduler run
+        // Add any telemetry or monitoring here if needed
+    }
+
+
+
 }
