@@ -165,6 +165,19 @@ public class RobotContainer
     NamedCommands.registerCommand("SetTurretAngle_180", turret.setAngleCommand(180.0));
     NamedCommands.registerCommand("SetTurretAngle_-90", turret.setAngleCommand(-90.0));
 
+    //Set hopper speed
+
+    NamedCommands.registerCommand("runHopper", 
+            hopper.runMotorCommand(0.5));
+    NamedCommands.registerCommand("stopHopper", 
+            hopper.stopMotorCommand());
+    //Set intake speed
+    NamedCommands.registerCommand("runIntake", 
+            intake.runMotorCommand(0.5));
+
+    NamedCommands.registerCommand("stopIntake", 
+            intake.stopMotorCommand());
+
     // Aim turret at the hub and wait until on target (3s timeout)
     NamedCommands.registerCommand("TurretAimForward",
         turret.moveToAngleCommand(0.0).withTimeout(3.0));
@@ -232,6 +245,11 @@ public class RobotContainer
       //
       // Face buttons snap turret to cardinal preset angles
       operatorXbox.a().onTrue(turret.setAngleCommand(0.0));    // Forward
+      //Turn on Intake while holding button
+      operatorXbox.a().whileTrue(intake.runMotorCommand(0.5));    // Forward
+      
+      //turn on hop
+
       operatorXbox.b().onTrue(turret.setAngleCommand(90.0));   // Right
       operatorXbox.x().onTrue(turret.setAngleCommand(-90.0));  // Left
       operatorXbox.y().onTrue(turret.setAngleCommand(180.0));  // Backward
