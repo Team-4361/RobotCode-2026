@@ -25,7 +25,6 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
-import frc.robot.commands.Shooter.ShooterCommand;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.commands.Intake.IntakeCommand;
 import frc.robot.subsystems.IntakeSubsystem;
