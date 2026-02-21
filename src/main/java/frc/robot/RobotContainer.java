@@ -25,8 +25,12 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
-import frc.robot.commands.Shooter.ShooterComamand;
+import frc.robot.commands.Shooter.ShooterCommand;
 import frc.robot.subsystems.ShooterSubsystem;
+import frc.robot.commands.Intake.IntakeCommand;
+import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.commands.Hopper.HopperCommand;
+import frc.robot.subsystems.HopperSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 
 import java.io.File;
@@ -46,7 +50,6 @@ public class RobotContainer
   final CommandXboxController driverXbox = new CommandXboxController(2);  // The robot's subsystems and commands are defined here...
   private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve/neo"));
-  private final ShooterSubsystem shooter = new ShooterSubsystem();
 
   // Establish a Sendable Chooser that will be able to be sent to the SmartDashboard, allowing selection of desired auto
   private SendableChooser<Command> autoChooser;
