@@ -27,7 +27,6 @@ import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.subsystems.IntakeSubsystem;
-import frc.robot.commands.Hopper.HopperCommand;
 import frc.robot.subsystems.HopperSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
@@ -223,7 +222,6 @@ public class RobotContainer
     {
       // ── Driver bindings ──────────────────────────────────────────────────
       joystickL.button(12).onTrue(Commands.runOnce(drivebase::zeroGyro));
-      driverXbox.b().whileTrue(new HopperCommand(hopper));
       driverXbox.leftBumper().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
       joystickL.button(5).onTrue(Commands.runOnce(
           () -> drivebase.resetOdometry(new Pose2d(0, 0, new Rotation2d(Math.PI)))));
