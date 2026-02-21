@@ -4,11 +4,21 @@
 
 package frc.robot;
 
+import java.io.File;
+import java.util.Optional;
+
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
+import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
+import frc.robot.logics.teleopController;
+
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to each mode, as
@@ -17,6 +27,16 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
  */
 public class Robot extends TimedRobot
 {
+  final CommandJoystick joystickL = new CommandJoystick(0);
+  final CommandJoystick joystickR = new CommandJoystick(1);
+  public double xV = 0;
+  public double yV = 0;
+  public double rV = 0;
+
+  public SlewRateLimiter xfilter = new SlewRateLimiter(4);
+  public SlewRateLimiter yfilter = new SlewRateLimiter(4);
+  public SlewRateLimiter rfilter = new SlewRateLimiter(4);
+  public teleopController teleopwow;
 
   private static Robot   instance;
   private        Command m_autonomousCommand;
@@ -27,6 +47,7 @@ public class Robot extends TimedRobot
 
   public Robot()
   {
+    teleopwow = new teleopController(joystickL, joystickR);
     instance = this;
   }
 
@@ -127,7 +148,8 @@ public class Robot extends TimedRobot
     // This makes sure that the autonomous stops running when
     // teleop starts running. If you want the autonomous to
     // continue until interrupted by another command, remove
-    // this line or comment it out.
+    // this line or comment it out.=
+    
     if (m_autonomousCommand != null)
     {
       m_autonomousCommand.cancel();
@@ -135,6 +157,9 @@ public class Robot extends TimedRobot
     {
       CommandScheduler.getInstance().cancelAll();
     }
+    
+
+    
   }
 
   /**
@@ -143,6 +168,9 @@ public class Robot extends TimedRobot
   @Override
   public void teleopPeriodic()
   {
+
+    teleopwow.drivePID();
+
   }
 
   @Override
