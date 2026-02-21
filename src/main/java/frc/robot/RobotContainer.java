@@ -25,7 +25,6 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
-import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.commands.Intake.IntakeCommand;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.commands.Hopper.HopperCommand;
@@ -55,7 +54,6 @@ public class RobotContainer
 
   private final IntakeSubsystem intake = new IntakeSubsystem();
   private final HopperSubsystem hopper = new HopperSubsystem();
-  private final ShooterSubsystem shooter = new ShooterSubsystem();
 
 
   /**
@@ -207,7 +205,6 @@ public class RobotContainer
       //driverXbox.back().whileTrue(Commands.none());
       driverXbox.a().whileTrue(new IntakeCommand(intake, 0));
       driverXbox.b().whileTrue(new HopperCommand(hopper));
-      driverXbox.x().whileTrue(new ShooterCommand(null, 0, 0));
       //driverXbox.y().whileTrue(new ClimberCommand());
       driverXbox.leftBumper().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
       joystickL.button(5).onTrue(Commands.runOnce(() -> drivebase.resetOdometry(new Pose2d(0, 0, new Rotation2d(Math.PI)))));
