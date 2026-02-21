@@ -7,12 +7,14 @@ package frc.robot;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import edu.wpi.first.math.controller.ProfiledPIDController;
+import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.XboxController;
@@ -29,10 +31,16 @@ import frc.robot.commands.Intake.IntakeCommand;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.commands.Hopper.HopperCommand;
 import frc.robot.subsystems.HopperSubsystem;
+import frc.robot.subsystems.SparkMaxSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 
 import java.io.File;
+import java.net.SocketPermission;
+import java.util.Optional;
+
 import swervelib.SwerveInputStream;
+
+
 
 /**
  * This class is where the bulk of the robot should be declared. Since Command-based is a "declarative" paradigm, very
@@ -44,11 +52,18 @@ public class RobotContainer
 
   // Replace with CommandPS4Controller or CommandJoystick if needed
   final CommandJoystick joystickL = new CommandJoystick(0);
+  private final SparkMaxSubsystem sparkMaxSubsystem = new SparkMaxSubsystem(12);
   final CommandJoystick joystickR = new CommandJoystick(1);
+  double xV = 0;
+  double yV = 0;
+  double rV = 0;
   final CommandXboxController driverXbox = new CommandXboxController(2);  // The robot's subsystems and commands are defined here...
-  private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
+  public final static SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve/neo"));
 
+    SlewRateLimiter xfilter = new SlewRateLimiter(4);
+    SlewRateLimiter yfilter = new SlewRateLimiter(4);
+    SlewRateLimiter rfilter = new SlewRateLimiter(4);
   // Establish a Sendable Chooser that will be able to be sent to the SmartDashboard, allowing selection of desired auto
   private SendableChooser<Command> autoChooser;
 
@@ -112,14 +127,17 @@ public class RobotContainer
    private final Command teleopFlightDriveCommand = drivebase.driveFieldOriented(
     SwerveInputStream.of(
         drivebase.getSwerveDrive(),
-        () -> -joystickL.getY(),  // Forward/Backward
-        () -> -joystickL.getX()   // Left/Right
+        () -> xV,  // Forward/Backward
+        () -> yV   // Left/Right
     )
-    .withControllerRotationAxis(() -> -joystickR.getTwist() * 0.95) // Rotation using right stick twist
+    .withControllerRotationAxis(() -> rV) // Rotation using right stick twist
     .deadband(OperatorConstants.DEADBAND) // Apply deadband as a setting
     .scaleTranslation(0.8)
     .allianceRelativeControl(true)
 );
+
+
+
 
   /**
    * The container for the robot. Contains subsystems, OI devices, and commands.
@@ -127,18 +145,54 @@ public class RobotContainer
   public RobotContainer()
   {
     // Configure the trigger bindings
+    registerNamedCommands();
+
+
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
+
+
 
     //Put the autoChooser on the SmartDashboard
 
       autoChooser = AutoBuilder.buildAutoChooser("New Auto");
     SmartDashboard.putData("Auto Chooser", autoChooser);
+    
 
     if (autoChooser.getSelected() == null ) {
     RobotModeTriggers.autonomous().onTrue(Commands.runOnce(drivebase::zeroGyroWithAlliance));
+
+
     }
+
   }
+
+
+  private void registerNamedCommands() {
+
+        
+        // Run motor at 50% speed
+        NamedCommands.registerCommand("RunMotor", 
+            sparkMaxSubsystem.runMotorCommand(0.5));
+        
+        // Run motor at full speed
+        NamedCommands.registerCommand("RunMotorFull", 
+            sparkMaxSubsystem.runMotorCommand(1.0));
+        
+        // Run motor backward at 50% speed
+        NamedCommands.registerCommand("RunMotorReverse", 
+            sparkMaxSubsystem.runMotorCommand(-0.5));
+        
+        // Stop motor
+        NamedCommands.registerCommand("StopMotor", 
+            sparkMaxSubsystem.stopMotorCommand());
+        
+        // Run motor for specific duration 
+        NamedCommands.registerCommand("RunMotorTimed", 
+            sparkMaxSubsystem.runMotorCommand(0.3).withTimeout(2.0));
+
+
+      }
 
   /**
    * Use this method to define your trigger->command mappings. Triggers can be created via the
@@ -161,7 +215,7 @@ public class RobotContainer
       drivebase.setDefaultCommand(teleopFlightDriveCommand);
     } else
     {
-      drivebase.setDefaultCommand(teleopFlightDriveCommand);
+      //drivebase.setDefaultCommand(teleopFlightDriveCommand);
     }
 
     if (Robot.isSimulation())
