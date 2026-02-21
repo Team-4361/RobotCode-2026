@@ -12,10 +12,12 @@ import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Constants;
 
 import frc.robot.util.ShooterCalculator;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 
+<<<<<<< HEAD
 import yams.mechanisms.config.FlyWheelConfig;
 import yams.mechanisms.velocity.FlyWheel;
 import yams.motorcontrollers.SmartMotorController;
@@ -24,6 +26,28 @@ import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
 import yams.motorcontrollers.remote.TalonFXSWrapper;
+=======
+public class ShooterSubsystem extends SubsystemBase
+{
+    private final TalonFX shooterKraken;
+    private final SparkFlex indexVortex;
+    //private MotionMagicVelocityVoltage talonController;
+        public ShooterSubsystem()
+        {
+            shooterKraken = new TalonFX(0); //add to constants  
+            shooterKraken.getConfigurator().apply(new TalonFXConfiguration());
+            var currentLimitsConfigs =   new CurrentLimitsConfigs();
+            shooterKraken.setNeutralMode(NeutralModeValue.Coast);
+            currentLimitsConfigs.StatorCurrentLimit = Constants.ShooterConstants.StatorCurrentLimit; // add value to constants 
+            currentLimitsConfigs.StatorCurrentLimitEnable = true;
+            shooterKraken.getConfigurator().refresh(currentLimitsConfigs);
+            shooterKraken.getConfigurator().apply(currentLimitsConfigs);
+            //talonController = new MotionMagicVelocityVoltage(0);
+        indexVortex = new SparkFlex(0, MotorType.kBrushless); 
+        SparkFlexConfig config = new SparkFlexConfig();
+        config.idleMode(IdleMode.kBrake);
+        indexVortex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+>>>>>>> 61ad26ec607095e5744446c415d5b9d1386855db
 
 /**
  * Shooter subsystem with full ballistic hub-targeting support.
@@ -242,4 +266,26 @@ public class ShooterSubsystem extends SubsystemBase {
         var alliance = DriverStation.getAlliance();
         return alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red;
     }
+<<<<<<< HEAD
+=======
+    public void stopShooter()
+   {
+        shooterKraken.stopMotor();
+        
+   }
+   public void stopIndexer()
+   {
+        indexVortex.stopMotor();
+   }
+   public void stopMotors()
+   {
+        shooterKraken.stopMotor();
+        indexVortex.stopMotor();
+   }
+   public double getRPM()
+   {
+         return shooterKraken.getVelocity().getValueAsDouble();
+   }
+    
+>>>>>>> 61ad26ec607095e5744446c415d5b9d1386855db
 }

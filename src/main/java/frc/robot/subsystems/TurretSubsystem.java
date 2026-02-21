@@ -1,0 +1,586 @@
+package frc.robot.subsystems;
+
+import static edu.wpi.first.units.Units.Radians;
+import static edu.wpi.first.units.Units.RadiansPerSecond;
+import static edu.wpi.first.units.Units.Rotations;
+import static edu.wpi.first.units.Units.RotationsPerSecond;
+
+import com.revrobotics.PersistMode;
+import com.revrobotics.RelativeEncoder;
+import com.revrobotics.ResetMode;
+import edu.wpi.first.math.controller.ArmFeedforward;
+import edu.wpi.first.math.geometry.Pose2d;
+import edu.wpi.first.math.geometry.Rotation2d;
+import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Translation2d;
+import com.revrobotics.spark.ClosedLoopSlot;
+import com.revrobotics.spark.FeedbackSensor;
+import com.revrobotics.spark.SparkBase.ControlType;
+import com.revrobotics.spark.SparkClosedLoopController;
+import com.revrobotics.spark.SparkLowLevel.MotorType;
+import com.revrobotics.spark.SparkMax;
+import com.revrobotics.spark.SparkSim;
+import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
+import com.revrobotics.spark.config.SparkMaxConfig;
+
+import edu.wpi.first.epilogue.Logged;
+import edu.wpi.first.math.MathUtil;
+import edu.wpi.first.math.system.plant.DCMotor;
+import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DigitalInput;
+import edu.wpi.first.wpilibj.simulation.BatterySim;
+import edu.wpi.first.wpilibj.simulation.RoboRioSim;
+import edu.wpi.first.wpilibj.simulation.SingleJointedArmSim;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
+import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+
+public class TurretSubsystem extends SubsystemBase {
+  private SwerveSubsystem swerveSubsystem;
+
+  // ========== LIMIT SWITCH ==========
+  private final DigitalInput limitSwitch;
+  private final int LIMIT_SWITCH_DIO_PORT = 0; // Change this to your DIO port
+  private boolean lastLimitSwitchState = false;
+  
+  // The angle that the limit switch represents (in degrees)
+  private static final double LIMIT_SWITCH_ANGLE = 180.0;
+
+  
+  // ========== MOTOR CONSTANTS ==========
+  private final DCMotor dcMotor = DCMotor.getNeo550(1);
+  private final int canID = 6; // Change to your CAN ID
+  private final double gearRatio = 1.0; // Change to your gear ratio
+  
+  // PID Constants - TUNE THESE FOR YOUR ROBOT
+  private final double kP = 0.5; // Start with a lower value - increase if response is too slow
+  private final double kI = 0.0;
+  private final double kD = 0.0;
+  
+  // Motor Configuration
+  private final boolean brakeMode = true;
+  private final double statorCurrentLimit = 40; // Amps
+  private Translation2d targetPosition = new Translation2d(0, 0);
+
+
+  private Transform2d turretOffset = new Transform2d(
+    new Translation2d(0.2, 0.1),  // Change these values to match your robot!
+    new Rotation2d()  // No rotation offset
+  );
+  // Turret angle limits (in degrees)
+  private static final double MIN_TURRET_ANGLE = -180.0;
+  private static final double MAX_TURRET_ANGLE = 180.0;
+  
+  // Current desired angle (in degrees)
+  private double desiredAngleDegrees = 0.0;
+
+  // Motor controller
+  private final SparkMax motor;
+  private final RelativeEncoder encoder;
+  private final SparkSim motorSim;
+  private final SparkClosedLoopController sparkPidController;
+
+  // Simulation
+  private final SingleJointedArmSim turretSim;
+
+  /**
+   * Creates a new Turret Subsystem with limit switch.
+   */
+  public TurretSubsystem(SwerveSubsystem swerveSubsystem) {
+    // Initialize limit switch
+    limitSwitch = new DigitalInput(LIMIT_SWITCH_DIO_PORT);
+    this.swerveSubsystem = swerveSubsystem;
+    // Initialize motor controller
+    SparkMaxConfig motorConfig = new SparkMaxConfig();
+    motor = new SparkMax(canID, MotorType.kBrushless);
+    motorConfig.idleMode(brakeMode ? IdleMode.kBrake : IdleMode.kCoast);
+
+    // Configure encoder
+    encoder = motor.getEncoder();
+    encoder.setPosition(0);
+
+    // Set current limits
+    motorConfig.smartCurrentLimit((int) statorCurrentLimit);
+
+    // Configure PID
+    sparkPidController = motor.getClosedLoopController();
+    motorConfig.closedLoop
+      .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
+      .pid(kP, kI, kD, ClosedLoopSlot.kSlot0);
+
+    // Configure Encoder Gear Ratio - CRITICAL FOR POSITION CONTROL
+    motorConfig.encoder
+      .positionConversionFactor(1.0 / gearRatio)  // Output shaft rotations per motor rotation
+      .velocityConversionFactor((1.0 / gearRatio) / 60.0); // Convert RPM to RPS
+
+    // Save configuration
+    motor.configure(
+      motorConfig,
+      ResetMode.kResetSafeParameters,
+      PersistMode.kPersistParameters
+    );
+    motorSim = new SparkSim(motor, dcMotor);
+
+    // Initialize simulation
+    turretSim = new SingleJointedArmSim(
+      dcMotor,
+      gearRatio,
+      0.01, // Moment of inertia
+      0.1, // Arm length (m)
+      Units.degreesToRadians(MIN_TURRET_ANGLE),
+      Units.degreesToRadians(MAX_TURRET_ANGLE),
+      false, // No gravity for horizontal turret
+      Units.degreesToRadians(0)
+    );
+    
+    System.out.println("Turret initialized with CAN ID: " + canID + ", Gear Ratio: " + gearRatio);
+  }
+
+ // ========== FIELD-RELATIVE AIMING METHODS ==========
+  
+  /**
+   * Set the target position on the field that the turret should aim at
+   * @param targetPosition Field-relative position in meters (x, y)
+   */
+  public void setTargetPosition(Translation2d targetPosition) {
+    this.targetPosition = targetPosition;
+  }
+  
+  /**
+   * Set the target pose on the field that the turret should aim at
+   * This extracts the translation (x, y) from the pose
+   * @param targetPose Field-relative pose of the target
+   */
+  public void setTargetPose(Pose2d targetPose) {
+    this.targetPosition = targetPose.getTranslation();
+  }
+  
+  /**
+   * Set the target position on the field using x and y coordinates
+   * @param x X coordinate in meters
+   * @param y Y coordinate in meters
+   */
+  public void setTargetPosition(double x, double y) {
+    this.targetPosition = new Translation2d(x, y);
+  }
+  
+  /**
+   * Calculate the required turret angle to aim at the target position
+   * This accounts for:
+   * 1. Robot position on field
+   * 2. Robot rotation
+   * 3. Turret offset from robot center (using Transform2d)
+   * 4. Turret angle limits (-180 to 180 degrees)
+   * @return Required turret angle in degrees (robot-relative, -180 to 180)
+   */
+  public double calculateTurretAngle() {
+    if (swerveSubsystem == null) {
+      System.err.println("Warning: SwerveSubsystem not set! Cannot calculate field-relative angle.");
+      return 0.0;
+    }
+    
+    // Get current robot pose from YAGSL
+    Pose2d robotPose = swerveSubsystem.getPose();
+    
+    // Calculate the ACTUAL turret position on the field
+    // This transforms the turret offset by the robot's pose
+    Pose2d turretPose = robotPose.plus(turretOffset);
+    Translation2d turretPosition = turretPose.getTranslation();
+    Rotation2d robotRotation = robotPose.getRotation();
+    
+    // Calculate vector from TURRET position to target
+    Translation2d turretToTarget = targetPosition.minus(turretPosition);
+    
+    // Calculate field-relative angle to target (from turret's perspective)
+    double fieldRelativeAngle = Math.atan2(turretToTarget.getY(), turretToTarget.getX());
+    fieldRelativeAngle = Math.toDegrees(fieldRelativeAngle);
+    
+    // Convert to robot-relative angle
+    // Subtract robot's rotation to get the angle relative to robot's front
+    double robotRelativeAngle = fieldRelativeAngle - robotRotation.getDegrees();
+    
+    // Normalize angle to -180 to 180 range
+    robotRelativeAngle = normalizeAngle(robotRelativeAngle);
+    
+    // Clamp to turret limits
+    robotRelativeAngle = MathUtil.clamp(robotRelativeAngle, MIN_TURRET_ANGLE, MAX_TURRET_ANGLE);
+    
+    return robotRelativeAngle;
+  }
+  
+    public void aimAtTarget() {
+    double targetAngle = calculateTurretAngle();
+    desiredAngleDegrees = targetAngle;
+    setAngle(targetAngle);
+  }
+
+  
+  /**
+   * Get distance to target (from turret position, not robot center)
+   * @return Distance to target in meters
+   */
+  public double getDistanceToTarget() {
+    if (swerveSubsystem == null) {
+      return 0.0;
+    }
+    Pose2d robotPose = swerveSubsystem.getPose();
+    // Calculate actual turret position using the offset
+    Pose2d turretPose = robotPose.plus(turretOffset);
+    Translation2d turretPosition = turretPose.getTranslation();
+    return turretPosition.getDistance(targetPosition);
+  }
+  
+  /**
+   * Set the turret offset from robot center
+   * @param offset Transform2d representing turret position relative to robot center
+   */
+  public void setTurretOffset(Transform2d offset) {
+    this.turretOffset = offset;
+  }
+  
+  /**
+   * Set the turret offset using x and y coordinates
+   * @param x X offset in meters (positive = forward)
+   * @param y Y offset in meters (positive = left)
+   */
+  public void setTurretOffset(double x, double y) {
+    this.turretOffset = new Transform2d(new Translation2d(x, y), new Rotation2d());
+  }
+  
+  /**
+   * Get the current turret offset
+   * @return Transform2d representing turret offset from robot center
+   */
+  public Transform2d getTurretOffset() {
+    return turretOffset;
+  }
+  
+  /**
+   * Get the actual turret position on the field
+   * @return Pose2d of the turret on the field
+   */
+  public Pose2d getTurretPose() {
+    if (swerveSubsystem == null) {
+      return new Pose2d();
+    }
+    return swerveSubsystem.getPose().plus(turretOffset);
+  }
+
+
+  /**
+   * Update telemetry and handle limit switch.
+   */
+  @Override
+  public void periodic() {
+    // Check limit switch
+    boolean limitSwitchPressed = !limitSwitch.get(); // Inverted because limit switches are normally open
+    
+    // Detect rising edge (limit switch just pressed)
+    if (limitSwitchPressed && !lastLimitSwitchState) {
+      resetToLimitSwitch();
+      System.out.println("Limit switch hit! Resetting turret to " + LIMIT_SWITCH_ANGLE + " degrees");
+    }
+    
+    lastLimitSwitchState = limitSwitchPressed;
+    
+    // Get normalized angle for telemetry
+    double normalizedAngle = normalizeAngle(Units.radiansToDegrees(getPositionRadians()));
+    
+    // Telemetry
+    SmartDashboard.putNumber("Turret/Current Angle", normalizedAngle);
+    SmartDashboard.putNumber("Turret/Current Angle (Raw)", Units.radiansToDegrees(getPositionRadians()));
+    SmartDashboard.putNumber("Turret/Current Position (Rotations)", getPosition());
+    SmartDashboard.putNumber("Turret/Desired Angle", desiredAngleDegrees);
+    SmartDashboard.putBoolean("Turret/At Setpoint", atSetpoint());
+    SmartDashboard.putNumber("Turret/Current", getCurrent());
+    SmartDashboard.putNumber("Turret/Voltage", getVoltage());
+    SmartDashboard.putNumber("Turret/Applied Output", motor.getAppliedOutput());
+    SmartDashboard.putBoolean("Turret/Limit Switch", limitSwitchPressed);
+  }
+
+  /**
+   * Update simulation.
+   */
+  @Override
+  public void simulationPeriodic() {
+    // Set input voltage from motor controller to simulation
+    turretSim.setInput(getVoltage());
+
+    // Update simulation by 20ms
+    turretSim.update(0.020);
+    RoboRioSim.setVInVoltage(
+      BatterySim.calculateDefaultBatteryLoadedVoltage(
+        turretSim.getCurrentDrawAmps()
+      )
+    );
+
+    double motorPosition = Radians.of(turretSim.getAngleRads() * gearRatio).in(Rotations);
+    double motorVelocity = RadiansPerSecond.of(
+      turretSim.getVelocityRadPerSec() * gearRatio
+    ).in(RotationsPerSecond);
+    motorSim.iterate(motorVelocity, RoboRioSim.getVInVoltage(), 0.02);
+  }
+
+  // ========== LIMIT SWITCH METHODS ==========
+  
+  /**
+   * Reset the encoder position when the limit switch is hit.
+   */
+  private void resetToLimitSwitch() {
+    double limitPositionRadians = Units.degreesToRadians(LIMIT_SWITCH_ANGLE);
+    double limitPositionRotations = limitPositionRadians / (2.0 * Math.PI);
+    encoder.setPosition(limitPositionRotations);
+    System.out.println("Encoder reset to: " + limitPositionRotations + " rotations (" + LIMIT_SWITCH_ANGLE + "°)");
+  }
+  
+  /**
+   * Check if the limit switch is pressed.
+   * @return True if limit switch is pressed
+   */
+  public boolean isLimitSwitchPressed() {
+    return !limitSwitch.get(); // Inverted
+  }
+
+  // ========== POSITION GETTERS ==========
+
+  /**
+   * Get the current position in Rotations.
+   * @return Position in Rotations
+   */
+  @Logged(name = "Position/Rotations")
+  public double getPosition() {
+    return encoder.getPosition();
+  }
+  
+  /**
+   * Get the current position in Radians.
+   * @return Position in Radians
+   */
+  public double getPositionRadians() {
+    return encoder.getPosition() * 2.0 * Math.PI;
+  }
+  
+  /**
+   * Get the current position in Degrees.
+   * @return Position in Degrees
+   */
+  public double getPositionDegrees() {
+    return Units.radiansToDegrees(getPositionRadians());
+  }
+
+  /**
+   * Get the current applied voltage.
+   * @return Applied voltage
+   */
+  @Logged(name = "Voltage")
+  public double getVoltage() {
+    return motor.getAppliedOutput() * motor.getBusVoltage();
+  }
+
+  /**
+   * Get the current motor current.
+   * @return Motor current in amps
+   */
+  public double getCurrent() {
+    return motor.getOutputCurrent();
+  }
+
+  // ========== CONTROL METHODS ==========
+
+  /**
+   * Set turret angle.
+   * @param angleDegrees The target angle in degrees
+   */
+  public void setAngle(double angleDegrees) {
+    // Normalize and clamp to limits
+    angleDegrees = normalizeAngle(angleDegrees);
+    angleDegrees = MathUtil.clamp(angleDegrees, MIN_TURRET_ANGLE, MAX_TURRET_ANGLE);
+    
+    // Check if we're trying to move past the limit switch
+    if (angleDegrees > LIMIT_SWITCH_ANGLE && isLimitSwitchPressed()) {
+      angleDegrees = LIMIT_SWITCH_ANGLE;
+    }
+    
+    desiredAngleDegrees = angleDegrees;
+    
+    // Convert degrees to rotations
+    double angleRadians = Units.degreesToRadians(angleDegrees);
+    double positionRotations = angleRadians / (2.0 * Math.PI);
+
+    System.out.println("========================================");
+    System.out.println("SET ANGLE CALLED");
+    System.out.println("Target Angle: " + angleDegrees + "°");
+    System.out.println("Target Position: " + positionRotations + " rotations");
+    System.out.println("Current Angle: " + getPositionDegrees() + "°");
+    System.out.println("Current Position: " + getPosition() + " rotations");
+    System.out.println("========================================");
+    
+    // Use simple position control with setReference
+    sparkPidController.setReference(
+      positionRotations,
+      ControlType.kPosition,
+      ClosedLoopSlot.kSlot0
+    );
+  }
+  
+  /**
+   * Stop the turret.
+   */
+  public void stop() {
+    motor.stopMotor();
+    System.out.println("Turret stopped");
+  }
+
+  /**
+   * Check if turret is at the desired angle.
+   * Uses normalized angles for comparison.
+   * @param tolerance Tolerance in degrees
+   * @return True if within tolerance
+   */
+  public boolean atSetpoint(double tolerance) {
+    double currentAngle = normalizeAngle(Units.radiansToDegrees(getPositionRadians()));
+    double normalizedDesired = normalizeAngle(desiredAngleDegrees);
+    double error = Math.abs(normalizeAngle(currentAngle - normalizedDesired));
+    return error < tolerance;
+  }
+  
+  /**
+   * Check if turret is at the desired angle with default tolerance.
+   * @return True if within 5 degrees
+   */
+  public boolean atSetpoint() {
+    return atSetpoint(5.0);
+  }
+
+  /**
+   * Normalize an angle to the range -180 to 180 degrees.
+   * @param angle Angle in degrees
+   * @return Normalized angle in degrees
+   */
+  private double normalizeAngle(double angle) {
+    angle = angle % 360.0;
+    if (angle > 180.0) {
+      angle -= 360.0;
+    } else if (angle < -180.0) {
+      angle += 360.0;
+    }
+    return angle;
+  }
+
+  // ========== COMMANDS ==========
+
+  public Command aimAtTargetCommand(Translation2d target) {
+    return run(() -> {
+      setTargetPosition(target);
+      aimAtTarget();
+    });
+  }
+  
+  /**
+   * Creates a command to continuously aim at a target pose
+   * @param targetPose Field-relative target pose
+   * @return A command that aims the turret at the target
+   */
+  public Command aimAtTargetCommand(Pose2d targetPose) {
+    return run(() -> {
+      setTargetPose(targetPose);
+      aimAtTarget();
+    });
+  }
+  
+  /**
+   * Creates a command to aim at a target and wait until on target
+   * @param target Field-relative target position (x, y in meters)
+   * @param timeoutSeconds Maximum time to wait
+   * @return A command that aims and waits
+   */
+  public Command aimAndWaitCommand(Translation2d target, double timeoutSeconds) {
+    return aimAtTargetCommand(target)
+      .until(() -> atSetpoint())
+      .withTimeout(timeoutSeconds);
+  }
+  
+  /**
+   * Creates a command to aim at a target pose and wait until on target
+   * @param targetPose Field-relative target pose
+   * @param timeoutSeconds Maximum time to wait
+   * @return A command that aims and waits
+   */
+  public Command aimAndWaitCommand(Pose2d targetPose, double timeoutSeconds) {
+    return aimAtTargetCommand(targetPose)
+      .until(() -> atSetpoint())
+      .withTimeout(timeoutSeconds);
+  }
+
+
+
+
+
+  /**
+   * Creates a command to set the turret to a specific angle.
+   * @param angleDegrees The target angle in degrees
+   * @return A command that sets the turret to the specified angle
+   */
+  public Command setAngleCommand(double angleDegrees) {
+    return runOnce(() -> {
+      System.out.println("setAngleCommand called for " + angleDegrees + "°");
+      setAngle(angleDegrees);
+    });
+  }
+
+  /**
+   * Creates a command to move the turret to a specific angle and wait until reached.
+   * @param angleDegrees The target angle in degrees
+   * @return A command that moves the turret to the specified angle
+   */
+  public Command moveToAngleCommand(double angleDegrees) {
+    return run(() -> setAngle(angleDegrees))
+      .until(() -> atSetpoint())
+      .finallyDo(() -> System.out.println("moveToAngleCommand finished for " + angleDegrees + "°"));
+  }
+
+  /**
+   * Creates a command to stop the turret.
+   * @return A command that stops the turret
+   */
+  public Command stopCommand() {
+    return runOnce(() -> stop());
+  }
+  
+  /**
+   * Creates a command for manual control with a joystick/controller.
+   * Uses angle-based control - increments/decrements the target angle.
+   * @param speedSupplier Supplier that returns speed [-1, 1]
+   * @param maxSpeed Maximum angle change rate in degrees per second
+   * @return A command for manual control
+   */
+  public Command manualControlCommand(java.util.function.DoubleSupplier speedSupplier, double maxSpeed) {
+    return run(() -> {
+      double speed = speedSupplier.getAsDouble();
+      
+      // Apply deadband
+      if (Math.abs(speed) < 0.1) {
+        return; // Don't change angle if stick is centered
+      }
+      
+      // Calculate angle increment (degrees to move this cycle)
+      // At 50Hz (20ms), multiply by 0.02 to get degrees per cycle
+      double angleIncrement = speed * maxSpeed * 0.02;
+      
+      // Get current desired angle and increment it
+      double newAngle = desiredAngleDegrees + angleIncrement;
+      
+      // Set the new angle (this will handle clamping and normalization)
+      setAngle(newAngle);
+    });
+  }
+
+  /**
+   * Get the turret simulation for testing.
+   * @return The turret simulation model
+   */
+  public SingleJointedArmSim getSimulation() {
+    return turretSim;
+  }
+}
