@@ -6,13 +6,9 @@ package frc.robot.subsystems;
 
 import edu.wpi.first.math.Matrix;
 import edu.wpi.first.math.VecBuilder;
-import edu.wpi.first.math.estimator.SwerveDrivePoseEstimator;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Pose3d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.numbers.N1;
 import edu.wpi.first.math.numbers.N3;
-import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -26,296 +22,303 @@ import org.photonvision.PhotonPoseEstimator;
 import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import org.photonvision.targeting.PhotonPipelineResult;
 
+/**
+ * Vision subsystem — manages all PhotonVision cameras and fuses their pose
+ * estimates into the swerve drive's {@link SwerveDrivePoseEstimator}.
+ *
+ * <p>Because this class extends {@link SubsystemBase}, the WPILib Command
+ * Scheduler calls {@link #periodic()} automatically every 20 ms.  Simply
+ * instantiating this class in {@code RobotContainer} is all that is needed;
+ * no further wiring or manual calls are required.
+ *
+ * <p>To add a third (or fourth) camera, follow the three-step pattern marked
+ * with "ADD CAMERA HERE" comments throughout this file.
+ */
 public class Vision extends SubsystemBase {
-    
-    // Cameras - add or remove cameras as needed
+
+    // ── Cameras ───────────────────────────────────────────────────────────────
+    // Camera names must match the names configured in PhotonVision's web UI.
     private final PhotonCamera frontCamera;
     private final PhotonCamera backCamera;
-    // Add more cameras here as needed
-    // private final PhotonCamera leftCamera;
-    // private final PhotonCamera rightCamera;
-    
-    // Pose estimators for each camera (for troubleshooting)
+    // ADD CAMERA HERE (step 1 of 3): private final PhotonCamera leftCamera;
+
+    // ── Per-camera pose estimators ────────────────────────────────────────────
     private final PhotonPoseEstimator frontPoseEstimator;
     private final PhotonPoseEstimator backPoseEstimator;
-    // Add more pose estimators here
-    // private final PhotonPoseEstimator leftPoseEstimator;
-    // private final PhotonPoseEstimator rightPoseEstimator;
-    
-    // Field2d objects for visualizing each camera's pose estimate
+    // ADD CAMERA HERE (step 2 of 3): private final PhotonPoseEstimator leftPoseEstimator;
+
+    // ── Per-camera Field2d widgets (SmartDashboard / Elastic visualisation) ──
     private final Field2d frontCameraField;
     private final Field2d backCameraField;
-    // Add more field objects for additional cameras
-    
-    // Reference to swerve subsystem for pose updates
+    // ADD CAMERA HERE (step 3 of 3): private final Field2d leftCameraField;
+
+    // ── Reference to swerve subsystem ─────────────────────────────────────────
     private final SwerveSubsystem swerveSubsystem;
-    
-    // AprilTag field layout
+
+    // ── AprilTag field layout ─────────────────────────────────────────────────
     private final edu.wpi.first.apriltag.AprilTagFieldLayout aprilTagFieldLayout;
-    
-    // Standard deviations for pose estimation
-    // Higher values = trust vision less, lower values = trust vision more
-    // [x, y, rotation] - we set rotation very high to trust gyro more
+
+    // ── Trust parameters ──────────────────────────────────────────────────────
+    // Standard deviations [x (m), y (m), θ (rad)].
+    // Larger value → trust that axis less.  Rotation is intentionally high so
+    // the gyro dominates heading estimation.
     private static final Matrix<N3, N1> SINGLE_TAG_STD_DEVS = VecBuilder.fill(4.0, 4.0, 8.0);
-    private static final Matrix<N3, N1> MULTI_TAG_STD_DEVS = VecBuilder.fill(0.5, 0.5, 2.0);
-    
-    // Maximum acceptable pose ambiguity (lower is better)
+    private static final Matrix<N3, N1> MULTI_TAG_STD_DEVS  = VecBuilder.fill(0.5, 0.5, 2.0);
+
+    // Reject single-tag estimates with ambiguity above this threshold.
+    // Lower = stricter. 0.2 is a reasonable starting point.
     private static final double MAX_POSE_AMBIGUITY = 0.2;
-    
-    // Maximum distance to trust vision measurements (in meters)
-    private static final double MAX_VISION_DISTANCE = 5.0;
-    
-    public Vision(SwerveSubsystem swerveSubsystem) {
+
+    // Reject estimates when the robot is further than this from every visible tag.
+    private static final double MAX_VISION_DISTANCE_M = 5.0;
+
+    // Runtime flag — set to false to pause all vision updates without destroying the subsystem.
+    private boolean visionEnabled = true;
+
+
+    /**
+     * Constructs the Vision subsystem.
+     *
+     * @param swerveSubsystem The swerve drive subsystem whose internal pose
+     *                        estimator will receive vision measurements.
+     */
+    public Vision(SwerveSubsystem swerveSubsystem)
+    {
         this.swerveSubsystem = swerveSubsystem;
-        
-        // Initialize cameras with their network table names
+
+        // ── Camera initialisation ─────────────────────────────────────────────
         frontCamera = new PhotonCamera("front_camera");
-        backCamera = new PhotonCamera("back_camera");
-        // Add more cameras:
-        // leftCamera = new PhotonCamera("left_camera");
-        // rightCamera = new PhotonCamera("right_camera");
-        
-        // Load AprilTag field layout (2026 Reefscape field)
-        // Change this to match your game year
+        backCamera  = new PhotonCamera("back_camera");
+
+        // ── AprilTag field layout ─────────────────────────────────────────────
+        // Change the field constant to match the season if needed.
         try {
             aprilTagFieldLayout = edu.wpi.first.apriltag.AprilTagFieldLayout.loadField(
-                edu.wpi.first.apriltag.AprilTagFields.k2026RebuiltWelded
-            );
+                edu.wpi.first.apriltag.AprilTagFields.k2026RebuiltWelded);
         } catch (Exception e) {
-            throw new RuntimeException("Failed to load AprilTag field layout", e);
+            throw new RuntimeException("Failed to load AprilTag field layout: " + e.getMessage(), e);
         }
-        
-        // Initialize pose estimators for each camera
-        // You need to set the robot-to-camera transform for each camera
-        // This is the physical position of the camera relative to the robot center
-        
-        // Front camera transform - CHANGE THESE VALUES TO MATCH YOUR ROBOT
-        // Example: camera is 0.3m forward, 0m left/right, 0.25m up, pitched down 30 degrees
+
+        // ── Pose estimators ───────────────────────────────────────────────────
+        // Each Transform3d describes where the camera sits relative to the robot
+        // centre (positive X = forward, positive Y = left, positive Z = up).
+        // CHANGE THESE VALUES to match your physical robot!
+
+        // Front camera: 30 cm forward, 25 cm up, pitched down 30°.
         frontPoseEstimator = new PhotonPoseEstimator(
             aprilTagFieldLayout,
             PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
             new edu.wpi.first.math.geometry.Transform3d(
                 new edu.wpi.first.math.geometry.Translation3d(0.3, 0.0, 0.25),
-                new edu.wpi.first.math.geometry.Rotation3d(0, Math.toRadians(-30), 0)
+                new edu.wpi.first.math.geometry.Rotation3d(0.0, Math.toRadians(-30), 0.0)
             )
         );
-        
-        // Back camera transform - CHANGE THESE VALUES TO MATCH YOUR ROBOT
-        // Example: camera is 0.3m backward, 0m left/right, 0.25m up, pitched down 30 degrees, rotated 180
+
+        // Back camera: 30 cm back, 25 cm up, pitched down 30°, yawed 180°.
         backPoseEstimator = new PhotonPoseEstimator(
             aprilTagFieldLayout,
             PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
             new edu.wpi.first.math.geometry.Transform3d(
                 new edu.wpi.first.math.geometry.Translation3d(-0.3, 0.0, 0.25),
-                new edu.wpi.first.math.geometry.Rotation3d(0, Math.toRadians(-30), Math.toRadians(180))
+                new edu.wpi.first.math.geometry.Rotation3d(0.0, Math.toRadians(-30), Math.toRadians(180))
             )
         );
-        
-        // Add more cameras:
-        /*
-        leftPoseEstimator = new PhotonPoseEstimator(
-            aprilTagFieldLayout,
-            PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-            new edu.wpi.first.math.geometry.Transform3d(
-                new edu.wpi.first.math.geometry.Translation3d(0.0, 0.3, 0.25),
-                new edu.wpi.first.math.geometry.Rotation3d(0, Math.toRadians(-30), Math.toRadians(90))
-            )
-        );
-        */
-        
-        // Initialize Field2d objects for visualization
+
+        // ── SmartDashboard Field2d widgets ────────────────────────────────────
         frontCameraField = new Field2d();
-        backCameraField = new Field2d();
-        // Add more:
-        // leftCameraField = new Field2d();
-        
-        SmartDashboard.putData("Front Camera Pose", frontCameraField);
-        SmartDashboard.putData("Back Camera Pose", backCameraField);
-        // SmartDashboard.putData("Left Camera Pose", leftCameraField);
+        backCameraField  = new Field2d();
+        SmartDashboard.putData("Vision/Front Camera Pose", frontCameraField);
+        SmartDashboard.putData("Vision/Back Camera Pose",  backCameraField);
+
+        SmartDashboard.putBoolean("Vision/Enabled", visionEnabled);
     }
-    
+
+
+    // ── Periodic ──────────────────────────────────────────────────────────────
+
     @Override
-    public void periodic() {
-        // Update pose estimates from each camera
+    public void periodic()
+    {
+        // Read the enabled flag from SmartDashboard so it can be toggled live.
+        visionEnabled = SmartDashboard.getBoolean("Vision/Enabled", visionEnabled);
+
+        if (!visionEnabled) {
+            return;
+        }
+
+        // Process every camera every loop.
         updateVisionMeasurement(frontCamera, frontPoseEstimator, frontCameraField, "Front");
-        updateVisionMeasurement(backCamera, backPoseEstimator, backCameraField, "Back");
-        // Add more cameras:
-        // updateVisionMeasurement(leftCamera, leftPoseEstimator, leftCameraField, "Left");
+        updateVisionMeasurement(backCamera,  backPoseEstimator,  backCameraField,  "Back");
+        // ADD CAMERA HERE: updateVisionMeasurement(leftCamera, leftPoseEstimator, leftCameraField, "Left");
     }
-    
+
+
+    // ── Core update logic ─────────────────────────────────────────────────────
+
     /**
-     * Updates the global pose estimate using vision measurements from a specific camera
-     * 
-     * @param camera The PhotonCamera to get results from
-     * @param poseEstimator The PhotonPoseEstimator for this camera
-     * @param field The Field2d object for visualization
-     * @param cameraName Name of the camera for logging
+     * Drains all unread results from {@code camera}, validates each estimate,
+     * scales standard deviations by distance, and injects trusted measurements
+     * into the swerve pose estimator.
+     *
+     * @param camera        Camera to read from.
+     * @param poseEstimator Matching PhotonPoseEstimator.
+     * @param field         Field2d widget to update for this camera.
+     * @param cameraName    Short name used for SmartDashboard keys.
      */
     private void updateVisionMeasurement(
-            PhotonCamera camera, 
+            PhotonCamera camera,
             PhotonPoseEstimator poseEstimator,
             Field2d field,
-            String cameraName) {
-        
-        // Get all unread results from the camera
+            String cameraName)
+    {
         var results = camera.getAllUnreadResults();
-        
-        // Process each result
+
         for (PhotonPipelineResult result : results) {
-            // Check if we have any targets
+
+            // ── Bail early if no targets visible ─────────────────────────────
             if (!result.hasTargets()) {
-                SmartDashboard.putBoolean(cameraName + " Has Targets", false);
+                SmartDashboard.putBoolean("Vision/" + cameraName + "/HasTargets", false);
                 continue;
             }
-            
-            SmartDashboard.putBoolean(cameraName + " Has Targets", true);
-            SmartDashboard.putNumber(cameraName + " Target Count", result.getTargets().size());
-            
-            // Get estimated pose from this camera
-            // The pose estimator uses the strategy set in its constructor
+
+            SmartDashboard.putBoolean("Vision/" + cameraName + "/HasTargets", true);
+            SmartDashboard.putNumber("Vision/" + cameraName + "/TargetCount",
+                                     result.getTargets().size());
+
+            // ── Estimate pose ─────────────────────────────────────────────────
             Optional<EstimatedRobotPose> estimatedPose = poseEstimator.update(result);
-            
             if (estimatedPose.isEmpty()) {
-                SmartDashboard.putBoolean(cameraName + " Valid Pose", false);
+                SmartDashboard.putBoolean("Vision/" + cameraName + "/ValidPose", false);
                 continue;
             }
-            
-            EstimatedRobotPose robotPose = estimatedPose.get();
-            Pose2d estimatedPose2d = robotPose.estimatedPose.toPose2d();
-            
-            // Update field visualization for this camera
+
+            EstimatedRobotPose robotPose    = estimatedPose.get();
+            Pose2d             estimatedPose2d = robotPose.estimatedPose.toPose2d();
+
+            // Update the per-camera field widget
             field.setRobotPose(estimatedPose2d);
-            
-            // Get the best target to check ambiguity
-            var bestTarget = result.getBestTarget();
-            double poseAmbiguity = bestTarget.getPoseAmbiguity();
-            
-            // Calculate distance to closest tag
-            double closestTagDistance = Double.MAX_VALUE;
+
+            // ── Quality checks ────────────────────────────────────────────────
+            double poseAmbiguity       = result.getBestTarget().getPoseAmbiguity();
+            double closestTagDistanceM = Double.MAX_VALUE;
+
             for (var target : result.getTargets()) {
                 var tagPose = aprilTagFieldLayout.getTagPose(target.getFiducialId());
                 if (tagPose.isPresent()) {
-                    double distance = tagPose.get().toPose2d().getTranslation()
-                        .getDistance(estimatedPose2d.getTranslation());
-                    closestTagDistance = Math.min(closestTagDistance, distance);
+                    double dist = tagPose.get().toPose2d().getTranslation()
+                                         .getDistance(estimatedPose2d.getTranslation());
+                    closestTagDistanceM = Math.min(closestTagDistanceM, dist);
                 }
             }
-            
-            // Determine if we should trust this measurement
+
             boolean shouldTrust = true;
-            String rejectReason = "";
-            
+            String  rejectReason = "";
+
             if (poseAmbiguity > MAX_POSE_AMBIGUITY) {
-                shouldTrust = false;
-                rejectReason = "High ambiguity: " + String.format("%.3f", poseAmbiguity);
-            } else if (closestTagDistance > MAX_VISION_DISTANCE) {
-                shouldTrust = false;
-                rejectReason = "Too far from tags: " + String.format("%.2fm", closestTagDistance);
+                shouldTrust  = false;
+                rejectReason = String.format("High ambiguity (%.3f > %.2f)",
+                                             poseAmbiguity, MAX_POSE_AMBIGUITY);
+            } else if (closestTagDistanceM > MAX_VISION_DISTANCE_M) {
+                shouldTrust  = false;
+                rejectReason = String.format("Tag too far (%.2f m > %.1f m)",
+                                             closestTagDistanceM, MAX_VISION_DISTANCE_M);
             }
-            
-            // Log debug information
-            SmartDashboard.putBoolean(cameraName + " Valid Pose", true);
-            SmartDashboard.putBoolean(cameraName + " Trusted", shouldTrust);
-            SmartDashboard.putString(cameraName + " Reject Reason", rejectReason);
-            SmartDashboard.putNumber(cameraName + " Ambiguity", poseAmbiguity);
-            SmartDashboard.putNumber(cameraName + " Distance to Tag", closestTagDistance);
-            SmartDashboard.putNumber(cameraName + " Timestamp", robotPose.timestampSeconds);
-            
+
+            // ── Telemetry ─────────────────────────────────────────────────────
+            SmartDashboard.putBoolean("Vision/" + cameraName + "/ValidPose",    true);
+            SmartDashboard.putBoolean("Vision/" + cameraName + "/Trusted",      shouldTrust);
+            SmartDashboard.putString ("Vision/" + cameraName + "/RejectReason", rejectReason);
+            SmartDashboard.putNumber ("Vision/" + cameraName + "/Ambiguity",    poseAmbiguity);
+            SmartDashboard.putNumber ("Vision/" + cameraName + "/TagDistanceM", closestTagDistanceM);
+            SmartDashboard.putNumber ("Vision/" + cameraName + "/Timestamp",    robotPose.timestampSeconds);
+
             if (!shouldTrust) {
                 continue;
             }
-            
-            // Determine standard deviations based on number of tags and distance
-            Matrix<N3, N1> stdDevs;
-            if (result.getTargets().size() > 1) {
-                // Multiple tags - more confident
-                stdDevs = MULTI_TAG_STD_DEVS;
-                SmartDashboard.putString(cameraName + " Std Dev Type", "Multi-tag");
-            } else {
-                // Single tag - less confident
-                stdDevs = SINGLE_TAG_STD_DEVS;
-                SmartDashboard.putString(cameraName + " Std Dev Type", "Single-tag");
-            }
-            
-            // Scale standard deviations based on distance
-            // Further away = less trust
-            double distanceScaling = 1.0 + (closestTagDistance / MAX_VISION_DISTANCE);
+
+            // ── Standard deviation scaling ────────────────────────────────────
+            // Start from multi-tag (tight) or single-tag (loose) base values,
+            // then scale up linearly with distance so far-away estimates are
+            // trusted less.
+            Matrix<N3, N1> baseStdDevs = (result.getTargets().size() > 1)
+                    ? MULTI_TAG_STD_DEVS
+                    : SINGLE_TAG_STD_DEVS;
+
+            String stdDevType = (result.getTargets().size() > 1) ? "Multi-tag" : "Single-tag";
+            SmartDashboard.putString("Vision/" + cameraName + "/StdDevType", stdDevType);
+
+            double distanceScale = 1.0 + (closestTagDistanceM / MAX_VISION_DISTANCE_M);
             Matrix<N3, N1> scaledStdDevs = VecBuilder.fill(
-                stdDevs.get(0, 0) * distanceScaling,
-                stdDevs.get(1, 0) * distanceScaling,
-                stdDevs.get(2, 0) * distanceScaling
+                baseStdDevs.get(0, 0) * distanceScale,
+                baseStdDevs.get(1, 0) * distanceScale,
+                baseStdDevs.get(2, 0) * distanceScale
             );
-            
-            // Add vision measurement to the swerve drive's pose estimator
-            // The high rotation standard deviation means we trust the gyro much more than vision for rotation
+
+            SmartDashboard.putNumber("Vision/" + cameraName + "/StdDev_X",     scaledStdDevs.get(0, 0));
+            SmartDashboard.putNumber("Vision/" + cameraName + "/StdDev_Y",     scaledStdDevs.get(1, 0));
+            SmartDashboard.putNumber("Vision/" + cameraName + "/StdDev_Theta", scaledStdDevs.get(2, 0));
+
+            // ── Fuse into swerve pose estimator ───────────────────────────────
             swerveSubsystem.getSwerveDrive().addVisionMeasurement(
                 estimatedPose2d,
                 robotPose.timestampSeconds,
                 scaledStdDevs
             );
-            
-            SmartDashboard.putNumber(cameraName + " X Std Dev", scaledStdDevs.get(0, 0));
-            SmartDashboard.putNumber(cameraName + " Y Std Dev", scaledStdDevs.get(1, 0));
-            SmartDashboard.putNumber(cameraName + " Theta Std Dev", scaledStdDevs.get(2, 0));
         }
     }
-    
-    /**
-     * Gets the latest results from the front camera
-     */
+
+
+    // ── Public API ────────────────────────────────────────────────────────────
+
+    /** @return Latest unread results from the front camera. */
     public java.util.List<PhotonPipelineResult> getFrontCameraResults() {
         return frontCamera.getAllUnreadResults();
     }
-    
-    /**
-     * Gets the latest results from the back camera
-     */
+
+    /** @return Latest unread results from the back camera. */
     public java.util.List<PhotonPipelineResult> getBackCameraResults() {
         return backCamera.getAllUnreadResults();
     }
-    
+
     /**
-     * Get the estimated pose from a specific camera (for troubleshooting)
+     * Returns the most recent valid pose estimate from the front camera, if any.
+     * Primarily for diagnostics / unit tests.
      */
     public Optional<Pose2d> getFrontCameraPose() {
-        var results = frontCamera.getAllUnreadResults();
-        if (results.isEmpty()) {
-            return Optional.empty();
-        }
-        var result = results.get(results.size() - 1); // Get the most recent
-        if (!result.hasTargets()) {
-            return Optional.empty();
-        }
-        var estimate = frontPoseEstimator.update(result);
-        return estimate.map(pose -> pose.estimatedPose.toPose2d());
+        return getLatestPose(frontCamera, frontPoseEstimator);
     }
-    
+
     /**
-     * Get the estimated pose from the back camera (for troubleshooting)
+     * Returns the most recent valid pose estimate from the back camera, if any.
+     * Primarily for diagnostics / unit tests.
      */
     public Optional<Pose2d> getBackCameraPose() {
-        var results = backCamera.getAllUnreadResults();
-        if (results.isEmpty()) {
-            return Optional.empty();
-        }
-        var result = results.get(results.size() - 1); // Get the most recent
-        if (!result.hasTargets()) {
-            return Optional.empty();
-        }
-        var estimate = backPoseEstimator.update(result);
-        return estimate.map(pose -> pose.estimatedPose.toPose2d());
+        return getLatestPose(backCamera, backPoseEstimator);
     }
-    
-    /**
-     * Disable all vision updates (useful for testing)
-     */
-    private boolean visionEnabled = true;
-    
+
+    /** Enable or disable all vision updates at runtime. */
     public void setVisionEnabled(boolean enabled) {
         this.visionEnabled = enabled;
+        SmartDashboard.putBoolean("Vision/Enabled", enabled);
     }
-    
+
+    /** @return {@code true} if vision updates are currently enabled. */
     public boolean isVisionEnabled() {
         return visionEnabled;
+    }
+
+
+    // ── Private helpers ───────────────────────────────────────────────────────
+
+    private Optional<Pose2d> getLatestPose(PhotonCamera camera, PhotonPoseEstimator estimator)
+    {
+        var results = camera.getAllUnreadResults();
+        if (results.isEmpty()) return Optional.empty();
+
+        var result = results.get(results.size() - 1);
+        if (!result.hasTargets()) return Optional.empty();
+
+        return estimator.update(result)
+                        .map(est -> est.estimatedPose.toPose2d());
     }
 }

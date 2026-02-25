@@ -10,6 +10,7 @@ import com.revrobotics.ResetMode;
 import com.revrobotics.spark.SparkLowLevel.MotorType;
 
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class HopperSubsystem extends SubsystemBase //hello Jack and Chloe I know you guys are watching me
@@ -62,9 +63,22 @@ private static final double FEED_SPEED = 0.5;*/
     return hopperMotor.getOutputCurrent();
   }
 
-  @Override
-  public void periodic()
-    {
-
+    // Command to run the motor at a specified speed
+    public Command runMotorCommand(double speed) {
+        return this.runOnce(
+            () -> feed(speed));
     }
+    
+    // Command to stop the motor
+    public Command stopMotorCommand() {
+        return this.runOnce(() -> stopHopper());
+    }
+    
+    @Override
+    public void periodic() {
+        // This method will be called once per scheduler run
+        // Add any telemetry or monitoring here if needed
+    }
+
+
 }

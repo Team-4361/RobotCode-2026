@@ -1,6 +1,8 @@
-package frc.robot.subsystems;
+//package frc.robot.subsystems;
 
 /* Imports */
+
+
 import frc.robot.Constants;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -25,14 +27,17 @@ public class ClimberSubsystem extends SubsystemBase {
     private double error = targetPosition - aveCurretPos;
     private double pidOutput;
 
-    public ClimberSubsystem() 
-    {
-        /* Declares Sparkmax and Position */
+
+
+   public ClimberSubsystem() 
+     {
+        /* Declares Sparkmax and Position */ 
         winchMotor = new SparkMax(0, null);
         rightLinearActuator = new SparkMax(Constants.climberConstants.RSPARKMAX_ID, MotorType.kBrushless); 
         leftLinearActuator = new SparkMax(Constants.climberConstants.LSPARKMAX_ID, MotorType.kBrushless); 
         leftLAencoder = leftLinearActuator.getEncoder();
         rightLAencoder = rightLinearActuator.getEncoder();
+        
         //linearActuatorPos.setPosition(Constants.climberConstants.climberZero); idk if we need this?  
     }
 
