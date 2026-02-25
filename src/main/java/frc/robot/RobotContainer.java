@@ -31,7 +31,7 @@ import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.HopperSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
-import frc.robot.subsystems.Vision;
+//import frc.robot.subsystems.Vision;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 
 import java.io.File;
@@ -82,7 +82,7 @@ public class RobotContainer
   private final ShooterSubsystem shooter = new ShooterSubsystem();
 
   // Vision auto-runs via its periodic() — no manual calls needed anywhere.
-  private final Vision vision = new Vision(drivebase);
+  //private final Vision vision = new Vision(drivebase);
 
   // ========== TURRET CONFIG ==========
   private static final double TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC = 90.0;
