@@ -17,20 +17,17 @@ import edu.wpi.first.wpilibj2.command.Command;
 
 public class IntakeSubsystem extends SubsystemBase
 {
-    //private final SparkFlex sparkFlex;
-    //private final RelativeEncoder encoder;
+    private final SparkFlex sparkFlex;
+    private final RelativeEncoder encoder;
 
 
     public IntakeSubsystem()
     {
-       //sparkFlex = new SparkFlex(Constants.IntakeConstants.INTAKENEO, MotorType.kBrushless);
+       sparkFlex = new SparkFlex(Constants.IntakeConstants.INTAKENEO, MotorType.kBrushless);
          SparkFlexConfig config = new SparkFlexConfig();
-           /* .closedLoop.pid(0.01, 0, 0.001); */
-            //sparkFlex.configure(config, ResetMode.kNoResetSafeParameters, PersistMode.kNoPersistParameters);
-
         config.idleMode(IdleMode.kBrake);
-        //sparkFlex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-        //encoder = sparkFlex.getEncoder();
+        sparkFlex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
+        encoder = sparkFlex.getEncoder();
         //SparkClosedLoopController closedLoopController = sparkFlex.getClosedLoopController();
          SmartDashboard.putNumber("Intake Speed", Constants.IntakeConstants.speed);
     }
