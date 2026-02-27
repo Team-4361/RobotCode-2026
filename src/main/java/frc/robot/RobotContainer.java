@@ -26,12 +26,12 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.logics.Vision;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.HopperSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
-import frc.robot.subsystems.Vision;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 
 import java.io.File;
@@ -71,6 +71,8 @@ public class RobotContainer
   public final static SwerveSubsystem drivebase = new SwerveSubsystem(
       new File(Filesystem.getDeployDirectory(), "swerve/neo"));
 
+  private final Vision vision = new Vision(drivebase);
+
   SlewRateLimiter xfilter = new SlewRateLimiter(4);
   SlewRateLimiter yfilter = new SlewRateLimiter(4);
   SlewRateLimiter rfilter = new SlewRateLimiter(4);
@@ -82,7 +84,7 @@ public class RobotContainer
   private final ShooterSubsystem shooter = new ShooterSubsystem();
 
   // Vision auto-runs via its periodic() — no manual calls needed anywhere.
-  private final Vision vision = new Vision(drivebase);
+  //private final Vision vision = new Vision(drivebase);
 
   // ========== TURRET CONFIG ==========
   private static final double TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC = 90.0;
@@ -183,7 +185,9 @@ public class RobotContainer
     }
   }
 
-
+public void updateVision() {
+    vision.updateVision();
+}
   private void registerNamedCommands()
   {
     // Turret
