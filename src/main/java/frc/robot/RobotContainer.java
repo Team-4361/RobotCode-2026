@@ -267,7 +267,7 @@ public void updateVision() {
       // ── Operator: Turret bindings ─────────────────────────────────────────
      // operatorXbox.a().onTrue(turret.setAngleCommand(0.0));
       operatorXbox.a().whileTrue(intake.runMotorCommand(0.5));
-     // operatorXbox.b().onTrue(turret.setAngleCommand(90.0));
+      //operatorXbox.b().onTrue(turret.setAngleCommand(90.0));
      // operatorXbox.x().onTrue(turret.setAngleCommand(-90.0));
      // operatorXbox.y().onTrue(turret.setAngleCommand(180.0));
 
@@ -288,6 +288,27 @@ public void updateVision() {
       // triggered independently because a ball would jam against a stopped
       // shooter wheel. When toggled off, all three stop together.
       operatorXbox.leftTrigger(0.5).toggleOnTrue(shootWithFeedCommand());
+
+      // ── Operator: Control bindings ───────────────────────────────────────────
+      //operatorXbox.button(13).whileTrue(runIntake); //to be continued... 
+      //operatorXbox.button(14).whileTrue(hopper.runMotorCommand(-HOPPER_SPEED)); change to indexer later
+      //operatorXbox.button(15).whileTrue(reverseIntake);
+     // operatorXbox.leftBumper().whileTrue(intake.runMotorCommand(0.4));
+     // operatorXbox.
+/*
+Make controls for the operator using these (from the Robot X-Box Controller Buttons in the 2026 folder) 
+ * intake in - left bumper
+ * intake out - down arrow
+ * shoot 1 fuel - right bumper
+ * reverse hopper - left arrow
+ * reverse indexer - right arrow 
+ * vision aiming - right trigger
+ * turret right - b
+ * turret left - x
+ * climbing up - y
+ * climber down - a
+
+ */
     }
   }
 

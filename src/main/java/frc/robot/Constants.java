@@ -74,6 +74,7 @@ public final class Constants
   public static class HopperConstants
   {
     public static final double FEED_SPEED = 0.5;
+    public static final int sparkMaxID = 1;
   }
 
   public static class IntakeConstants
@@ -85,6 +86,6 @@ public final class Constants
 
   public static class ShooterConstants
   {
-    public static final int StatorCurrentLimit = 40;
+    public static final int StatorCurrentLimit = 40; //TODO: move turret and shoot constants
   }
 }

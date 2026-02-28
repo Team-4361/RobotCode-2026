@@ -32,7 +32,7 @@ public class ClimberSubsystem extends SubsystemBase {
    public ClimberSubsystem() 
      {
         /* Declares Sparkmax and Position */ 
-        winchMotor = new SparkMax(0, null);
+        winchMotor = new SparkMax(Constants.climberConstants.WINCH_ID, null);
         rightLinearActuator = new SparkMax(Constants.climberConstants.RSPARKMAX_ID, MotorType.kBrushless); 
         leftLinearActuator = new SparkMax(Constants.climberConstants.LSPARKMAX_ID, MotorType.kBrushless); 
         leftLAencoder = leftLinearActuator.getEncoder();

@@ -33,11 +33,11 @@ public class IntakeSubsystem extends SubsystemBase
     }
     public void SetMotorSpeed(Double speed) 
     {
-        //sparkFlex.set(speed);
+        sparkFlex.set(speed);
     }
     public void stop()
     {
-        //sparkFlex.stopMotor();
+        sparkFlex.stopMotor();
     }
 
     // Command to run the motor at a specified speed

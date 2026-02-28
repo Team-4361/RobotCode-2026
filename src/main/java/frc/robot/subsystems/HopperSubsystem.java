@@ -17,14 +17,11 @@ public class HopperSubsystem extends SubsystemBase //hello Jack and Chloe I know
   private final SparkMax hopperMotor;
 
 
- // constants
-/*private static final int HOPPER_ID = 1;
-private static final double FEED_SPEED = 0.5;*/
 
 
   public HopperSubsystem()
   {
-    hopperMotor = new SparkMax(1, MotorType.kBrushless); // creates a new motor controller object for the hopper motor
+    hopperMotor = new SparkMax(Constants.HopperConstants.sparkMaxID, MotorType.kBrushless); // creates a new motor controller object for the hopper motor
     SparkMaxConfig config = new SparkMaxConfig();
     config.idleMode(IdleMode.kCoast); //
     hopperMotor.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
