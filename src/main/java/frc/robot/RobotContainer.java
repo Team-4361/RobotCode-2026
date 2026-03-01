@@ -34,8 +34,11 @@ import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 
+import static edu.wpi.first.units.Units.RPM;
+
 import java.io.File;
 import java.util.Optional;
+import java.util.Set;
 
 import swervelib.SwerveInputStream;
 
@@ -45,8 +48,32 @@ import swervelib.SwerveInputStream;
  * little robot logic should actually be handled in the {@link Robot} periodic methods (other than the scheduler calls).
  * Instead, the structure of the robot (including subsystems, commands, and trigger mappings) should be declared here.
  */
+
+
+
+ 
 public class RobotContainer
 {
+
+
+  
+
+private Command shootWithFeedCommand() {
+    return Commands.defer(() ->
+        Commands.sequence(
+            shooter.setVelocity(RPM.of(5000))
+                   .withTimeout(0.25),
+            shooter.setVelocity(RPM.of(5000))
+                   .alongWith(
+                       hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 0.1)),
+                       feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.1))
+                   )
+        ).withName("ShootWithFeed"),
+        Set.of(shooter, hopper, feeder)
+    );
+}
+
+
 
   // ========== FIELD CONSTANTS ==========
   private static final double FIELD_LENGTH_M = Units.inchesToMeters(651.25);
@@ -111,14 +138,8 @@ public class RobotContainer
    *
    * When toggled off, all three stop together automatically.
    */
-  private Command shootWithFeedCommand() {
-    return shooter.aimAtHubContinuous(drivebase)
-                  .alongWith(
-                      hopper.runMotorCommand(HOPPER_SPEED),
-                      feeder.runMotorCommand(FEEDER_SPEED)
-                  )
-                  .withName("ShootWithFeed");
-  }
+
+
 
   // ========== AUTO ==========
   private SendableChooser<Command> autoChooser;
@@ -173,6 +194,18 @@ public class RobotContainer
    */
   public RobotContainer()
   {
+
+
+    SmartDashboard.putNumber("HOPPER_SPEED",  0.1);
+    SmartDashboard.putNumber("FEEDER_SPEED",  0.1);
+    SmartDashboard.putNumber("SHOOTER_SPEED", 0.1);
+
+
+    shooter.setDefaultCommand(shooter.set(0));
+    hopper.setDefaultCommand(hopper.stopMotorCommand());
+    feeder.setDefaultCommand(feeder.stopMotorCommand());
+
+
     registerNamedCommands();
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
@@ -287,8 +320,8 @@ public void updateVision() {
       // This is the ONLY way to run the hopper and feeder — they are never
       // triggered independently because a ball would jam against a stopped
       // shooter wheel. When toggled off, all three stop together.
-      operatorXbox.leftTrigger(0.5).toggleOnTrue(shootWithFeedCommand());
-    }
+      operatorXbox.leftTrigger(0.5)
+          .whileTrue(shootWithFeedCommand());    }
   }
 
 

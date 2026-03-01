@@ -10,6 +10,7 @@ import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -223,6 +224,7 @@ public class ShooterSubsystem extends SubsystemBase {
     @Override
     public void periodic() {
         shooter.updateTelemetry();
+        SmartDashboard.putNumber("Shooter RPM", shooter.getSpeed().in(RPM));
     }
 
     @Override

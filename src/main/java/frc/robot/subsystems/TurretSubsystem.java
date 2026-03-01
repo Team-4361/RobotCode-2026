@@ -274,7 +274,7 @@ public class TurretSubsystem extends SubsystemBase {
   @Override
   public void periodic() {
     // Check limit switch
-    boolean limitSwitchPressed = !limitSwitch.get(); // Inverted because limit switches are normally open
+    boolean limitSwitchPressed = limitSwitch.get(); // Inverted because limit switches are normally open
     
     // Detect rising edge (limit switch just pressed)
     if (limitSwitchPressed && !lastLimitSwitchState) {
