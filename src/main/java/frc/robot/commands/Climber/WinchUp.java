@@ -1,43 +1,43 @@
-package frc.robot.commands.Climber;
+// package frc.robot.commands.Climber;
 
-import edu.wpi.first.wpilibj2.command.Command;
-import frc.robot.subsystems.ClimberSubsystem;
+// import edu.wpi.first.wpilibj2.command.Command;
+// import frc.robot.subsystems.ClimberSubsystem;
 
-public class WinchUp extends Command {
-    public final ClimberSubsystem winch;
-    public WinchUp(ClimberSubsystem subsystem) {
-        this.winch = subsystem;
+// public class WinchUp extends Command {
+//     public final ClimberSubsystem winch;
+//     public WinchUp(ClimberSubsystem subsystem) {
+//         this.winch = subsystem;
 
-        addRequirements(winch); 
-    }
+//         addRequirements(winch); 
+//     }
 
- @Override
-         //Prepares to move the winch up
-    public void initialize()
-    {
+//  @Override
+//          //Prepares to move the winch up
+//     public void initialize()
+//     {
 
-        winch.winchMoveUp();
-    }
-        //Moves the winch up
-    public void execute()
-    {
-        winch.winchMoveUp();
-    }
+//         winch.winchMoveUp();
+//     }
+//         //Moves the winch up
+//     public void execute()
+//     {
+//         winch.winchMoveUp();
+//     }
 
-    public void end() 
-    {
-        winch.stopWinch();
-    }
+//     public void end() 
+//     {
+//         winch.stopWinch();
+//     }
 
-    @Override
-    public void end(boolean interrupted) {
-        winch.stopWinch();
-    }
+//     @Override
+//     public void end(boolean interrupted) {
+//         winch.stopWinch();
+//     }
 
 
-    @Override
-    public boolean isFinished()
-    {
-        return false; //Checks if it is at its target position
-    }
-}
+//     @Override
+//     public boolean isFinished()
+//     {
+//         return false; //Checks if it is at its target position
+//     }
+// }

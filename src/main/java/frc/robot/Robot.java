@@ -18,7 +18,7 @@ import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 import frc.robot.logics.teleopController;
-
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to each mode, as
@@ -29,6 +29,7 @@ public class Robot extends TimedRobot
 {
   final CommandJoystick joystickL = new CommandJoystick(0);
   final CommandJoystick joystickR = new CommandJoystick(1);
+final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
   public double xV = 0;
   public double yV = 0;
   public double rV = 0;
@@ -47,7 +48,7 @@ public class Robot extends TimedRobot
 
   public Robot()
   {
-    teleopwow = new teleopController(joystickL, joystickR);
+    teleopwow = new teleopController(joystickL, joystickR, xboxCommandJoystick);
     instance = this;
   }
 

@@ -50,11 +50,11 @@ public class TurretSubsystem extends SubsystemBase {
   
   // ========== MOTOR CONSTANTS ==========
   private final DCMotor dcMotor = DCMotor.getNeo550(1);
-  private final int canID = 6; // Change to your CAN ID
-  private final double gearRatio = 1.0; // Change to your gear ratio
+  private final int canID = 14; // Change to your CAN ID
+  private final double gearRatio = 120.0; // Change to your gear ratio
   
   // PID Constants - TUNE THESE FOR YOUR ROBOT
-  private final double kP = 0.5; // Start with a lower value - increase if response is too slow
+  private final double kP = 1.5; // Start with a lower value - increase if response is too slow
   private final double kI = 0.0;
   private final double kD = 0.0;
   
@@ -88,9 +88,9 @@ public class TurretSubsystem extends SubsystemBase {
    * Creates a new Turret Subsystem with limit switch.
    */
   public TurretSubsystem(SwerveSubsystem swerveSubsystem) {
+    this.swerveSubsystem = swerveSubsystem;
     // Initialize limit switch
     limitSwitch = new DigitalInput(LIMIT_SWITCH_DIO_PORT);
-    this.swerveSubsystem = swerveSubsystem;
     // Initialize motor controller
     SparkMaxConfig motorConfig = new SparkMaxConfig();
     motor = new SparkMax(canID, MotorType.kBrushless);
@@ -136,7 +136,6 @@ public class TurretSubsystem extends SubsystemBase {
     
     System.out.println("Turret initialized with CAN ID: " + canID + ", Gear Ratio: " + gearRatio);
   }
-
  // ========== FIELD-RELATIVE AIMING METHODS ==========
   
   /**

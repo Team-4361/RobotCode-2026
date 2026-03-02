@@ -6,6 +6,7 @@ import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
+import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.RobotContainer;
 import frc.robot.Settings;
 
@@ -16,6 +17,7 @@ public class teleopController {
     
 private CommandJoystick joystickL;
 private CommandJoystick joystickR;
+private CommandXboxController xboxController;
 
   public double xV = 0;
   public double yV = 0;
@@ -25,26 +27,27 @@ private CommandJoystick joystickR;
   public SlewRateLimiter yfilter = new SlewRateLimiter(4);
   public SlewRateLimiter rfilter = new SlewRateLimiter(4);
 
-    public teleopController(CommandJoystick joyL, CommandJoystick joyR) {
+    public teleopController(CommandJoystick joyL, CommandJoystick joyR, CommandXboxController xboxCommandJoystick) {
         joystickL = joyL;
         joystickR = joyR;
+        xboxController = xboxCommandJoystick;
     }
 
     public void drivePID() {
  // Read joystick axes
-        double xSpeedJoystick = -joystickL.getRawAxis(1); // INVERTED
+        double xSpeedJoystick = -xboxController.getRawAxis(1); // INVERTED
         if (Math.abs(xSpeedJoystick) < Settings.joystickDeadband) {
             xSpeedJoystick = 0;
         }
         xSpeedJoystick = xfilter.calculate(xSpeedJoystick);
 
-        double ySpeedJoystick = -joystickL.getRawAxis(0); // INVERTED
+        double ySpeedJoystick = -xboxController.getRawAxis(0); // INVERTED
         if (Math.abs(ySpeedJoystick) < Settings.joystickDeadband) {
             ySpeedJoystick = 0;
         }
         ySpeedJoystick = yfilter.calculate(ySpeedJoystick);
         
-        double rSpeedJoystick = -joystickR.getRawAxis(2);
+        double rSpeedJoystick = -xboxController.getRawAxis(4);
         if (Math.abs(rSpeedJoystick) < Settings.joystickDeadband) {
             rSpeedJoystick = 0;
         }

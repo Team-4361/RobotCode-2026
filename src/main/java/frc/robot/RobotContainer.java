@@ -25,6 +25,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.logics.Vision;
 import frc.robot.subsystems.IntakeSubsystem;
@@ -61,12 +62,12 @@ public class RobotContainer
 private Command shootWithFeedCommand() {
     return Commands.defer(() ->
         Commands.sequence(
-            shooter.setVelocity(RPM.of(5000))
+            shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.9))
                    .withTimeout(0.25),
-            shooter.setVelocity(RPM.of(5000))
+            shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.9))
                    .alongWith(
-                       hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 0.1)),
-                       feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.1))
+                       hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
+                       feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
                    )
         ).withName("ShootWithFeed"),
         Set.of(shooter, hopper, feeder)
@@ -91,8 +92,10 @@ private Command shootWithFeedCommand() {
   double xV = 0;
   double yV = 0;
   double rV = 0;
-  final CommandXboxController driverXbox   = new CommandXboxController(2);
-  final CommandXboxController operatorXbox = new CommandXboxController(3);
+  final CommandXboxController operatorXbox = new CommandXboxController(2);
+  final CommandXboxController testXbox = new CommandXboxController(3);
+
+
 
   // ========== SUBSYSTEMS ==========
   public final static SwerveSubsystem drivebase = new SwerveSubsystem(
@@ -147,40 +150,7 @@ private Command shootWithFeedCommand() {
 
   // ========== SWERVE INPUT STREAMS ==========
 
-  SwerveInputStream driveAngularVelocity = SwerveInputStream.of(drivebase.getSwerveDrive(),
-                                                                () -> driverXbox.getLeftY() * -1,
-                                                                () -> driverXbox.getLeftX() * -1)
-                                                            .withControllerRotationAxis(driverXbox::getRightX)
-                                                            .deadband(OperatorConstants.DEADBAND)
-                                                            .scaleTranslation(0.8)
-                                                            .allianceRelativeControl(true);
-
-  SwerveInputStream driveDirectAngle = driveAngularVelocity.copy()
-                                                           .withControllerHeadingAxis(driverXbox::getRightX,
-                                                                                      driverXbox::getRightY)
-                                                           .headingWhile(true);
-
-  SwerveInputStream driveRobotOriented = driveAngularVelocity.copy()
-                                                             .robotRelative(true)
-                                                             .allianceRelativeControl(false);
-
-  SwerveInputStream driveAngularVelocityKeyboard = SwerveInputStream.of(drivebase.getSwerveDrive(),
-                                                                        () -> -driverXbox.getLeftY(),
-                                                                        () -> -driverXbox.getLeftX())
-                                                                    .withControllerRotationAxis(
-                                                                        () -> driverXbox.getRawAxis(2))
-                                                                    .deadband(OperatorConstants.DEADBAND)
-                                                                    .scaleTranslation(0.8)
-                                                                    .allianceRelativeControl(true);
-
-  SwerveInputStream driveDirectAngleKeyboard = driveAngularVelocityKeyboard.copy()
-                                                                           .withControllerHeadingAxis(
-                                                                               () -> Math.sin(driverXbox.getRawAxis(2) * Math.PI) * (Math.PI * 2),
-                                                                               () -> Math.cos(driverXbox.getRawAxis(2) * Math.PI) * (Math.PI * 2))
-                                                                           .headingWhile(true)
-                                                                           .translationHeadingOffset(true)
-                                                                           .translationHeadingOffset(Rotation2d.fromDegrees(0));
-
+  
   private final Command teleopFlightDriveCommand = drivebase.driveFieldOriented(
       SwerveInputStream.of(drivebase.getSwerveDrive(), () -> xV, () -> yV)
                        .withControllerRotationAxis(() -> rV)
@@ -248,11 +218,11 @@ public void updateVision() {
 
   private void configureBindings()
   {
-    Command driveFieldOrientedDirectAngle              = drivebase.driveFieldOriented(driveDirectAngle);
-    Command driveFieldOrientedAnglularVelocity         = drivebase.driveFieldOriented(driveAngularVelocity);
-    Command driveRobotOrientedAngularVelocity          = drivebase.driveFieldOriented(driveRobotOriented);
-    Command driveFieldOrientedDirectAngleKeyboard      = drivebase.driveFieldOriented(driveDirectAngleKeyboard);
-    Command driveFieldOrientedAnglularVelocityKeyboard = drivebase.driveFieldOriented(driveAngularVelocityKeyboard);
+    // Command driveFieldOrientedDirectAngle              = drivebase.driveFieldOriented(driveDirectAngle);
+    // Command driveFieldOrientedAnglularVelocity         = drivebase.driveFieldOriented(driveAngularVelocity);
+    // Command driveRobotOrientedAngularVelocity          = drivebase.driveFieldOriented(driveRobotOriented);
+    // Command driveFieldOrientedDirectAngleKeyboard      = drivebase.driveFieldOriented(driveDirectAngleKeyboard);
+    // Command driveFieldOrientedAnglularVelocityKeyboard = drivebase.driveFieldOriented(driveAngularVelocityKeyboard);
 
     // Turret default: manual right-stick control
     turret.setDefaultCommand(
@@ -263,35 +233,39 @@ public void updateVision() {
     // ── Simulation bindings ───────────────────────────────────────────────
     if (Robot.isSimulation())
     {
-      Pose2d target = new Pose2d(new Translation2d(1, 4), Rotation2d.fromDegrees(90));
-      driveDirectAngleKeyboard.driveToPose(
-          () -> target,
-          new ProfiledPIDController(5, 0, 0, new Constraints(5, 2)),
-          new ProfiledPIDController(5, 0, 0,
-              new Constraints(Units.degreesToRadians(360), Units.degreesToRadians(180))));
 
-      driverXbox.start().onTrue(Commands.runOnce(
-          () -> drivebase.resetOdometry(new Pose2d(3, 3, new Rotation2d()))));
-      driverXbox.button(1).whileTrue(drivebase.sysIdDriveMotorCommand());
-      driverXbox.button(2).whileTrue(Commands.runEnd(
-          () -> driveDirectAngleKeyboard.driveToPoseEnabled(true),
-          () -> driveDirectAngleKeyboard.driveToPoseEnabled(false)));
+      testXbox.a().whileTrue(Commands.runOnce(drivebase::zeroGyro));
+      testXbox.b().whileTrue(Commands.runOnce(drivebase::zeroGyroWithAlliance));
+      Pose2d target = new Pose2d(new Translation2d(2.772, 4.062), Rotation2d.fromDegrees(0));
+
+        testXbox.x().whileTrue(drivebase.driveToPose(target));
+
+    //  driverXbox.start().onTrue(Commands.runOnce(
+     //     () -> drivebase.resetOdometry(new Pose2d(3, 3, new Rotation2d()))));
+     // driverXbox.button(1).whileTrue(drivebase.sysIdDriveMotorCommand());
+
+           
     }
 
     // ── Test mode bindings ────────────────────────────────────────────────
     if (DriverStation.isTest())
     {
-      driverXbox.x().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
-      driverXbox.start().onTrue(Commands.runOnce(drivebase::zeroGyro));
-      driverXbox.back().whileTrue(drivebase.centerModulesCommand());
-      driverXbox.leftBumper().onTrue(Commands.none());
-      driverXbox.rightBumper().onTrue(Commands.none());
+      // driverXbox.x().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
+      // driverXbox.start().onTrue(Commands.runOnce(drivebase::zeroGyro));
+      // driverXbox.back().whileTrue(drivebase.centerModulesCommand());
+      // driverXbox.leftBumper().onTrue(Commands.none());
+      // driverXbox.rightBumper().onTrue(Commands.none());
+
+      operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+      operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+      operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
+      operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
     }
     else
     {
       // ── Driver bindings ──────────────────────────────────────────────────
       joystickL.button(12).onTrue(Commands.runOnce(drivebase::zeroGyro));
-      driverXbox.leftBumper().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
+      // driverXbox.leftBumper().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
       joystickL.button(5).onTrue(Commands.runOnce(
           () -> drivebase.resetOdometry(new Pose2d(0, 0, new Rotation2d(Math.PI)))));
       joystickL.button(3).onTrue(Commands.runOnce(
@@ -321,7 +295,10 @@ public void updateVision() {
       // triggered independently because a ball would jam against a stopped
       // shooter wheel. When toggled off, all three stop together.
       operatorXbox.leftTrigger(0.5)
-          .whileTrue(shootWithFeedCommand());    }
+          .whileTrue(shootWithFeedCommand());    
+        
+        
+        }
   }
 
 

@@ -2,6 +2,7 @@ package frc.robot.subsystems;
 
 import static edu.wpi.first.units.Units.*;
 
+import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.hardware.TalonFXS;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
@@ -9,13 +10,17 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularVelocity;
+import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
-import frc.robot.util.ShooterCalculator;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
+import frc.robot.util.ShooterCalculator;
+import yams.gearing.GearBox;
+import yams.gearing.MechanismGearing;
+import edu.wpi.first.units.Units;
 
 import yams.mechanisms.config.FlyWheelConfig;
 import yams.mechanisms.velocity.FlyWheel;
@@ -25,6 +30,7 @@ import yams.motorcontrollers.SmartMotorControllerConfig.ControlMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.MotorMode;
 import yams.motorcontrollers.SmartMotorControllerConfig.TelemetryVerbosity;
 import yams.motorcontrollers.remote.TalonFXSWrapper;
+import yams.motorcontrollers.remote.TalonFXWrapper;
 
 /**
  * Shooter subsystem with full ballistic hub-targeting support.
@@ -57,33 +63,47 @@ public class ShooterSubsystem extends SubsystemBase {
 
     // ── Motor / flywheel configuration (unchanged) ────────────────────────────
 
-    private final SmartMotorControllerConfig smcConfig = new SmartMotorControllerConfig(this)
-            .withControlMode(ControlMode.CLOSED_LOOP)
-            .withClosedLoopController(50, 0, 0,
-                    DegreesPerSecond.of(90), DegreesPerSecondPerSecond.of(45))
-            .withSimClosedLoopController(50, 0, 0,
-                    DegreesPerSecond.of(90), DegreesPerSecondPerSecond.of(45))
-            .withFeedforward(new SimpleMotorFeedforward(0, 0, 0))
-            .withSimFeedforward(new SimpleMotorFeedforward(0, 0, 0))
-            .withTelemetry("ShooterMotor", TelemetryVerbosity.HIGH)
-            .withMotorInverted(false)
-            .withIdleMode(MotorMode.COAST)
-            .withStatorCurrentLimit(Amps.of(80))
-            .withClosedLoopRampRate(Seconds.of(0.25))
-            .withOpenLoopRampRate(Seconds.of(0.25));
+SmartMotorControllerConfig smcConfig = new SmartMotorControllerConfig(this)
+  .withControlMode(ControlMode.CLOSED_LOOP)
+.withClosedLoopController(
+    0.00016541, 0, 0,
+    RPM.of(5000),
+    RotationsPerSecondPerSecond.of(2500)   // ← fix units here too
+)
+.withSimClosedLoopController(
+    0.00016541, 0, 0,
+    RPM.of(5000),
+    RotationsPerSecondPerSecond.of(2500)
+)
+.withFeedforward(new SimpleMotorFeedforward(0.27937, 0.089836, 0.014557))
+.withSimFeedforward(new SimpleMotorFeedforward(0.27937, 0.089836, 0.014557))
 
-    private final TalonFXS           krakenMotor   = new TalonFXS(4);
+  // Telemetry name and verbosity level
+  .withTelemetry("ShooterMotor", TelemetryVerbosity.HIGH)
+  // Gearing from the motor rotor to final shaft.
+  // In this example gearbox(3,4) is the same as gearbox("3:1","4:1") which corresponds to the gearbox attached to your motor.
+  .withGearing(new MechanismGearing(GearBox.fromReductionStages(1, 1)))
+  // Motor properties to prevent over currenting.
+  .withMotorInverted(false)
+  .withIdleMode(MotorMode.COAST)
+  .withStatorCurrentLimit(Amps.of(40))
+  .withClosedLoopRampRate(Seconds.of(0.25))
+  .withOpenLoopRampRate(Seconds.of(0.25));
+
+
+private final TalonFX krakenMotor = new TalonFX(21);
     private final SmartMotorController motor        =
-            new TalonFXSWrapper(krakenMotor, DCMotor.getKrakenX60(1), smcConfig);
+        new TalonFXWrapper(krakenMotor, DCMotor.getKrakenX60(1), smcConfig);
 
+        
     private final FlyWheelConfig shooterConfig = new FlyWheelConfig(motor)
             .withDiameter(Inches.of(4))
-            .withMass(Pounds.of(1))
+            .withMass(Pounds.of(3.375)) //flywheel mass (6 flywheels)
             .withUpperSoftLimit(RPM.of(6000))
             .withTelemetry("Shooter", TelemetryVerbosity.HIGH);
 
     private final FlyWheel shooter = new FlyWheel(shooterConfig);
-
+ 
     // ── Last commanded target RPM (for isAtTargetSpeed) ──────────────────────
 
     private double targetRPM = 0.0;
@@ -185,6 +205,32 @@ public class ShooterSubsystem extends SubsystemBase {
      */
     public Command set(double dutyCycle) {
         return shooter.set(dutyCycle);
+    }
+
+
+    // ═════════════════════════════════════════════════════════════════════════
+    //  System identification routines
+    // ═════════════════════════════════════════════════════════════════════════
+    private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
+        new SysIdRoutine.Config(),
+        new SysIdRoutine.Mechanism(
+            (Voltage volts) -> krakenMotor.setVoltage(volts.in(Volts)),
+            log -> {
+                log.motor("shooter")
+                .voltage(Volts.of(krakenMotor.get() * 12.0))
+                .angularVelocity(getVelocity())
+                .angularPosition(Rotations.of(krakenMotor.getPosition().getValueAsDouble()));
+            },
+            this
+        )
+    );
+
+    public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
+        return sysIdRoutine.quasistatic(direction);
+    }
+
+    public Command sysIdDynamic(SysIdRoutine.Direction direction) {
+        return sysIdRoutine.dynamic(direction);
     }
 
     // ═════════════════════════════════════════════════════════════════════════
