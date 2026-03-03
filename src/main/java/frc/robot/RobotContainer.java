@@ -256,10 +256,7 @@ public void updateVision() {
       // driverXbox.leftBumper().onTrue(Commands.none());
       // driverXbox.rightBumper().onTrue(Commands.none());
 
-      operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-      operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-      operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
-      operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+
     }
     else
     {
@@ -273,7 +270,11 @@ public void updateVision() {
 
       // ── Operator: Turret bindings ─────────────────────────────────────────
      // operatorXbox.a().onTrue(turret.setAngleCommand(0.0));
-      operatorXbox.a().whileTrue(intake.runMotorCommand(0.5));
+     // operatorXbox.a().whileTrue(intake.runMotorCommand(0.5));
+            operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+      operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+      operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
+      operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
      // operatorXbox.b().onTrue(turret.setAngleCommand(90.0));
      // operatorXbox.x().onTrue(turret.setAngleCommand(-90.0));
      // operatorXbox.y().onTrue(turret.setAngleCommand(180.0));

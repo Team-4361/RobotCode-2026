@@ -211,19 +211,23 @@ private final TalonFX krakenMotor = new TalonFX(21);
     // ═════════════════════════════════════════════════════════════════════════
     //  System identification routines
     // ═════════════════════════════════════════════════════════════════════════
-    private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
-        new SysIdRoutine.Config(),
-        new SysIdRoutine.Mechanism(
-            (Voltage volts) -> krakenMotor.setVoltage(volts.in(Volts)),
-            log -> {
-                log.motor("shooter")
-                .voltage(Volts.of(krakenMotor.get() * 12.0))
-                .angularVelocity(getVelocity())
-                .angularPosition(Rotations.of(krakenMotor.getPosition().getValueAsDouble()));
-            },
-            this
-        )
-    );
+        private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
+            new SysIdRoutine.Config(),
+            new SysIdRoutine.Mechanism(
+                (Voltage volts) -> krakenMotor.setVoltage(volts.in(Volts)),
+                log -> {
+                    log.motor("shooter")
+                    .voltage(
+                        Volts.of(krakenMotor.getMotorVoltage().getValueAsDouble()) // ← fix
+                    )
+                    .angularVelocity(getVelocity())
+                    .angularPosition(
+                        Rotations.of(krakenMotor.getPosition().getValueAsDouble())
+                    );
+                },
+                this
+            )
+        );
 
     public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
         return sysIdRoutine.quasistatic(direction);
