@@ -1,4 +1,4 @@
-package frc.robot.subsystems;
+ package frc.robot.subsystems;
 import com.revrobotics.PersistMode;
 import com.revrobotics.RelativeEncoder;
 import com.revrobotics.ResetMode;
@@ -23,9 +23,9 @@ public class IntakeSubsystem extends SubsystemBase
 
     public IntakeSubsystem()
     {
-       sparkFlex = new SparkFlex(13, MotorType.kBrushless);
+       sparkFlex = new SparkFlex(9, MotorType.kBrushless);
          SparkFlexConfig config = new SparkFlexConfig();
-        config.idleMode(IdleMode.kBrake);
+        config.idleMode(IdleMode.kCoast);
         sparkFlex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
         encoder = sparkFlex.getEncoder();
         //SparkClosedLoopController closedLoopController = sparkFlex.getClosedLoopController();
@@ -33,11 +33,11 @@ public class IntakeSubsystem extends SubsystemBase
     }
     public void SetMotorSpeed(Double speed) 
     {
-        //sparkFlex.set(speed);
+        sparkFlex.set(speed);
     }
     public void stop()
     {
-        //sparkFlex.stopMotor();
+        sparkFlex.stopMotor();
     }
 
     // Command to run the motor at a specified speed
@@ -46,6 +46,19 @@ public class IntakeSubsystem extends SubsystemBase
             () -> SetMotorSpeed(speed));
     }
     
+    public Command stopMotor(double speed) {
+        return this.runOnce(
+            () -> sparkFlex.stopMotor());
+    }
+
+
+public Command runMotorButBetter(double speed) {
+    return this.runEnd(
+        () -> sparkFlex.set(speed),
+        () -> sparkFlex.set(0)
+    );
+}
+
     // Command to stop the motor
     public Command stopMotorCommand() {
         return this.runOnce(() -> stop());

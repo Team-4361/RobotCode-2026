@@ -46,6 +46,13 @@ public class FeederSubsystem extends SubsystemBase
         return this.runOnce(() -> stop());
     }
     
+    public Command runMotorButBetter(double speed) {
+    return this.runEnd(
+        () -> sparkFlex.set(speed),
+        () -> sparkFlex.set(0)
+    );
+}
+
     @Override
     public void periodic() {
         // This method will be called once per scheduler run

@@ -76,6 +76,8 @@ private Command shootWithFeedCommand() {
 
 
 
+
+
   // ========== FIELD CONSTANTS ==========
   private static final double FIELD_LENGTH_M = Units.inchesToMeters(651.25);
 
@@ -225,11 +227,12 @@ public void updateVision() {
     // Command driveFieldOrientedAnglularVelocityKeyboard = drivebase.driveFieldOriented(driveAngularVelocityKeyboard);
 
     // Turret default: manual right-stick control
+    /*
     turret.setDefaultCommand(
         turret.manualControlCommand(
             () -> operatorXbox.getRightX(),
             TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC));
-
+ */
     // ── Simulation bindings ───────────────────────────────────────────────
     if (Robot.isSimulation())
     {
@@ -255,11 +258,12 @@ public void updateVision() {
       // driverXbox.back().whileTrue(drivebase.centerModulesCommand());
       // driverXbox.leftBumper().onTrue(Commands.none());
       // driverXbox.rightBumper().onTrue(Commands.none());
-
+/*
       operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
       operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
       operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
       operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+       */
     }
     else
     {
@@ -273,7 +277,8 @@ public void updateVision() {
 
       // ── Operator: Turret bindings ─────────────────────────────────────────
      // operatorXbox.a().onTrue(turret.setAngleCommand(0.0));
-      operatorXbox.a().whileTrue(intake.runMotorCommand(0.5));
+      operatorXbox.a().whileTrue(intake.runMotorButBetter(0.7));
+
      // operatorXbox.b().onTrue(turret.setAngleCommand(90.0));
      // operatorXbox.x().onTrue(turret.setAngleCommand(-90.0));
      // operatorXbox.y().onTrue(turret.setAngleCommand(180.0));

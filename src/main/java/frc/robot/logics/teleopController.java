@@ -35,23 +35,24 @@ private CommandXboxController xboxController;
 
     public void drivePID() {
  // Read joystick axes
-        double xSpeedJoystick = -xboxController.getRawAxis(1); // INVERTED
+        double xSpeedJoystick = -joystickL.getRawAxis(1); // INVERTED
         if (Math.abs(xSpeedJoystick) < Settings.joystickDeadband) {
             xSpeedJoystick = 0;
         }
         xSpeedJoystick = xfilter.calculate(xSpeedJoystick);
 
-        double ySpeedJoystick = -xboxController.getRawAxis(0); // INVERTED
+        double ySpeedJoystick = -joystickL.getRawAxis(0); // INVERTED
         if (Math.abs(ySpeedJoystick) < Settings.joystickDeadband) {
             ySpeedJoystick = 0;
         }
         ySpeedJoystick = yfilter.calculate(ySpeedJoystick);
         
-        double rSpeedJoystick = -xboxController.getRawAxis(4);
+        double rSpeedJoystick = -joystickR.getRawAxis(2);
         if (Math.abs(rSpeedJoystick) < Settings.joystickDeadband) {
             rSpeedJoystick = 0;
         }
         rSpeedJoystick = rfilter.calculate(rSpeedJoystick);
+        
         // Flip for red alliance (field-centric coordinate system)
         Optional<Alliance> alliance = DriverStation.getAlliance();
         if (alliance.isPresent() && alliance.get().equals(Alliance.Red)) {
