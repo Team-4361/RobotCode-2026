@@ -91,7 +91,7 @@ SmartMotorControllerConfig smcConfig = new SmartMotorControllerConfig(this)
   .withOpenLoopRampRate(Seconds.of(0.25));
 
 
-private final TalonFX krakenMotor = new TalonFX(21);
+private final TalonFX krakenMotor = new TalonFX(10);
     private final SmartMotorController motor        =
         new TalonFXWrapper(krakenMotor, DCMotor.getKrakenX60(1), smcConfig);
 

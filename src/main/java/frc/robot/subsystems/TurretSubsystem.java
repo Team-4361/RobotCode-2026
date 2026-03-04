@@ -50,7 +50,7 @@ public class TurretSubsystem extends SubsystemBase {
   
   // ========== MOTOR CONSTANTS ==========
   private final DCMotor dcMotor = DCMotor.getNeo550(1);
-  private final int canID = 14; // Change to your CAN ID
+  private final int canID = 12; // Change to your CAN ID
   private final double gearRatio = 120.0; // Change to your gear ratio
   
   // PID Constants - TUNE THESE FOR YOUR ROBOT
@@ -277,7 +277,7 @@ public class TurretSubsystem extends SubsystemBase {
     
     // Detect rising edge (limit switch just pressed)
     if (limitSwitchPressed && !lastLimitSwitchState) {
-      resetToLimitSwitch();
+      //resetToLimitSwitch();
       System.out.println("Limit switch hit! Resetting turret to " + LIMIT_SWITCH_ANGLE + " degrees");
     }
     

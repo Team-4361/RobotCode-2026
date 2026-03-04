@@ -277,7 +277,7 @@ public void updateVision() {
 
       // ── Operator: Turret bindings ─────────────────────────────────────────
      // operatorXbox.a().onTrue(turret.setAngleCommand(0.0));
-      operatorXbox.a().whileTrue(intake.runMotorButBetter(0.7));
+      operatorXbox.a().whileTrue(intake.runMotorButBetter(0.4));
 
      // operatorXbox.b().onTrue(turret.setAngleCommand(90.0));
      // operatorXbox.x().onTrue(turret.setAngleCommand(-90.0));
