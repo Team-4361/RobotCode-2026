@@ -64,6 +64,11 @@ public class TurretSubsystem extends SubsystemBase {
   private Translation2d targetPosition = new Translation2d(0, 0);
 
 
+  //stuff
+  private boolean fieldAngleLocked = false;
+  private double lockedFieldAngleDegrees = 0.0;
+
+
   private Transform2d turretOffset = new Transform2d(
     new Translation2d(0.2, 0.1),  // Change these values to match your robot!
     new Rotation2d()  // No rotation offset
@@ -111,8 +116,8 @@ public class TurretSubsystem extends SubsystemBase {
 
     // Configure Encoder Gear Ratio - CRITICAL FOR POSITION CONTROL
     motorConfig.encoder
-      .positionConversionFactor(1.0 / gearRatio)  // Output shaft rotations per motor rotation
-      .velocityConversionFactor((1.0 / gearRatio) / 60.0); // Convert RPM to RPS
+      .positionConversionFactor(-(1.0 / gearRatio))  // Output shaft rotations per motor rotation
+      .velocityConversionFactor(-(1.0 / gearRatio) / 60.0); // Convert RPM to RPS
 
     // Save configuration
     motor.configure(
@@ -247,6 +252,7 @@ public class TurretSubsystem extends SubsystemBase {
     this.turretOffset = new Transform2d(new Translation2d(x, y), new Rotation2d());
   }
   
+  
   /**
    * Get the current turret offset
    * @return Transform2d representing turret offset from robot center
@@ -287,6 +293,10 @@ public class TurretSubsystem extends SubsystemBase {
     double normalizedAngle = normalizeAngle(Units.radiansToDegrees(getPositionRadians()));
     
     // Telemetry
+
+
+    SmartDashboard.putBoolean("Turret/FieldAngleLocked", fieldAngleLocked);
+    SmartDashboard.putNumber("Turret/LockedFieldAngle", lockedFieldAngleDegrees);
     SmartDashboard.putNumber("Turret/Current Angle", normalizedAngle);
     SmartDashboard.putNumber("Turret/Current Angle (Raw)", Units.radiansToDegrees(getPositionRadians()));
     SmartDashboard.putNumber("Turret/Current Position (Rotations)", getPosition());
@@ -340,6 +350,47 @@ public class TurretSubsystem extends SubsystemBase {
   public boolean isLimitSwitchPressed() {
     return !limitSwitch.get(); // Inverted
   }
+
+
+
+//Lock in position:
+
+/** Lock the turret to its current field-relative angle. */
+public void lockFieldAngle() {
+    if (swerveSubsystem == null) return;
+    // Current field-relative angle = robot rotation + current turret angle
+    double robotDeg = swerveSubsystem.getPose().getRotation().getDegrees();
+    double turretDeg = normalizeAngle(getPositionDegrees());
+    lockedFieldAngleDegrees = normalizeAngle(robotDeg + turretDeg);
+    fieldAngleLocked = true;
+    System.out.println("Field angle locked at: " + lockedFieldAngleDegrees + "°");
+}
+
+/** Unlock field angle lock — turret returns to normal robot-relative control. */
+public void unlockFieldAngle() {
+    fieldAngleLocked = false;
+    System.out.println("Field angle lock released");
+}
+
+public boolean isFieldAngleLocked() { return fieldAngleLocked; }
+
+/**
+ * When field-angle-locked, calculates the robot-relative angle needed
+ * to hold the locked field angle as the robot rotates.
+ */
+public double calculateLockedAngle() {
+    double robotDeg = swerveSubsystem.getPose().getRotation().getDegrees();
+    double robotRelative = normalizeAngle(lockedFieldAngleDegrees - robotDeg);
+    return MathUtil.clamp(robotRelative, MIN_TURRET_ANGLE, MAX_TURRET_ANGLE);
+}
+
+/**
+ * Nudges the locked field angle (called during manual override while locked).
+ * This lets you manually steer while locked — the lock angle updates in real time.
+ */
+public void nudgeLockedAngle(double deltaDegrees) {
+    lockedFieldAngleDegrees = normalizeAngle(lockedFieldAngleDegrees + deltaDegrees);
+}
 
   // ========== POSITION GETTERS ==========
 
@@ -547,33 +598,40 @@ public class TurretSubsystem extends SubsystemBase {
     return runOnce(() -> stop());
   }
   
-  /**
-   * Creates a command for manual control with a joystick/controller.
-   * Uses angle-based control - increments/decrements the target angle.
-   * @param speedSupplier Supplier that returns speed [-1, 1]
-   * @param maxSpeed Maximum angle change rate in degrees per second
-   * @return A command for manual control
-   */
-  public Command manualControlCommand(java.util.function.DoubleSupplier speedSupplier, double maxSpeed) {
+
+/**
+ * Locks turret to a field-relative angle. Manual X/B inputs nudge the 
+ * locked angle rather than the robot-relative angle, so it "sticks" to
+ * the field. On cancel, lock is released.
+ */
+public Command fieldAngleLockCommand() {
+    return runOnce(this::lockFieldAngle)
+        .andThen(run(() -> setAngle(calculateLockedAngle())))
+        .finallyDo((interrupted) -> unlockFieldAngle());
+}
+
+/** 
+ * Updated manual command — when field-locked, nudges the locked angle.
+ * When not locked, behaves exactly as before.
+ */
+public Command manualControlCommand(java.util.function.DoubleSupplier speedSupplier, double maxSpeed) {
     return run(() -> {
-      double speed = speedSupplier.getAsDouble();
-      
-      // Apply deadband
-      if (Math.abs(speed) < 0.1) {
-        return; // Don't change angle if stick is centered
-      }
-      
-      // Calculate angle increment (degrees to move this cycle)
-      // At 50Hz (20ms), multiply by 0.02 to get degrees per cycle
-      double angleIncrement = speed * maxSpeed * 0.02;
-      
-      // Get current desired angle and increment it
-      double newAngle = desiredAngleDegrees + angleIncrement;
-      
-      // Set the new angle (this will handle clamping and normalization)
-      setAngle(newAngle);
+        double speed = speedSupplier.getAsDouble();
+        if (Math.abs(speed) < 0.1) return;
+
+        double angleIncrement = speed * maxSpeed * 0.02;
+
+        if (fieldAngleLocked) {
+            // Nudge the locked field angle — turret "steers" while staying field-locked
+            nudgeLockedAngle(angleIncrement);
+            setAngle(calculateLockedAngle());
+        } else {
+            double newAngle = desiredAngleDegrees + angleIncrement;
+            setAngle(newAngle);
+        }
     });
-  }
+}
+
 
   /**
    * Get the turret simulation for testing.

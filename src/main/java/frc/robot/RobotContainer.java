@@ -4,6 +4,7 @@
 
 package frc.robot;
 
+import com.ctre.phoenix6.SignalLogger;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 import edu.wpi.first.math.controller.ProfiledPIDController;
@@ -168,9 +169,9 @@ private Command shootWithFeedCommand() {
   {
 
 
-    SmartDashboard.putNumber("HOPPER_SPEED",  0.1);
-    SmartDashboard.putNumber("FEEDER_SPEED",  0.1);
-    SmartDashboard.putNumber("SHOOTER_SPEED", 0.1);
+    SmartDashboard.putNumber("HOPPER_SPEED",  1.0);
+    SmartDashboard.putNumber("FEEDER_SPEED",  0.9);
+    SmartDashboard.putNumber("SHOOTER_SPEED", 0.9);
 
 
     shooter.setDefaultCommand(shooter.set(0));
@@ -226,13 +227,8 @@ public void updateVision() {
     // Command driveFieldOrientedDirectAngleKeyboard      = drivebase.driveFieldOriented(driveDirectAngleKeyboard);
     // Command driveFieldOrientedAnglularVelocityKeyboard = drivebase.driveFieldOriented(driveAngularVelocityKeyboard);
 
-    // Turret default: manual right-stick control
-    /*
-    turret.setDefaultCommand(
-        turret.manualControlCommand(
-            () -> operatorXbox.getRightX(),
-            TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC));
- */
+    
+      turret.setDefaultCommand(turret.stopCommand());
     // ── Simulation bindings ───────────────────────────────────────────────
     if (Robot.isSimulation())
     {
@@ -278,6 +274,22 @@ public void updateVision() {
       // ── Operator: Turret bindings ─────────────────────────────────────────
      // operatorXbox.a().onTrue(turret.setAngleCommand(0.0));
       operatorXbox.a().whileTrue(intake.runMotorButBetter(0.7));
+      operatorXbox.leftBumper().toggleOnTrue(turret.fieldAngleLockCommand().withName("TurretFieldLock"));
+
+/*
+    operatorXbox.leftBumper().onTrue(Commands.runOnce(SignalLogger::start));
+    operatorXbox.rightBumper().onTrue(Commands.runOnce(SignalLogger::stop));
+
+    // SysId tests
+    operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+    operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+    operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
+    operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+ */
+
+
+ operatorXbox.x().whileTrue(turret.manualControlCommand(() -> 1.0, TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC));
+operatorXbox.b().whileTrue(turret.manualControlCommand(() ->  -1.0, TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC));
 
      // operatorXbox.b().onTrue(turret.setAngleCommand(90.0));
      // operatorXbox.x().onTrue(turret.setAngleCommand(-90.0));

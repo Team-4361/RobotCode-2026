@@ -10,6 +10,8 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.system.plant.DCMotor;
 import edu.wpi.first.units.measure.AngularVelocity;
+import com.ctre.phoenix6.SignalLogger;
+import com.ctre.phoenix6.controls.VoltageOut;
 import edu.wpi.first.units.measure.Voltage;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -207,23 +209,23 @@ private final TalonFX krakenMotor = new TalonFX(21);
         return shooter.set(dutyCycle);
     }
 
-
+    private final VoltageOut m_voltReq = new VoltageOut(0.0);
     // ═════════════════════════════════════════════════════════════════════════
     //  System identification routines
     // ═════════════════════════════════════════════════════════════════════════
-    private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
-        new SysIdRoutine.Config(),
-        new SysIdRoutine.Mechanism(
-            (Voltage volts) -> krakenMotor.setVoltage(volts.in(Volts)),
-            log -> {
-                log.motor("shooter")
-                .voltage(Volts.of(krakenMotor.get() * 12.0))
-                .angularVelocity(getVelocity())
-                .angularPosition(Rotations.of(krakenMotor.getPosition().getValueAsDouble()));
-            },
-            this
-        )
-    );
+        private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
+            new SysIdRoutine.Config(
+                null,
+                Volts.of(4),  // reduce to prevent brownout
+                null,
+                (state) -> SignalLogger.writeString("state", state.toString())
+            ),
+            new SysIdRoutine.Mechanism(
+                (volts) -> krakenMotor.setControl(m_voltReq.withOutput(volts.in(Volts))),
+                null,  // ← null because SignalLogger handles logging automatically
+                this
+            )
+        );
 
     public Command sysIdQuasistatic(SysIdRoutine.Direction direction) {
         return sysIdRoutine.quasistatic(direction);
