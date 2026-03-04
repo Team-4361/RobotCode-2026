@@ -172,6 +172,7 @@ private Command shootWithFeedCommand() {
     SmartDashboard.putNumber("HOPPER_SPEED",  1.0);
     SmartDashboard.putNumber("FEEDER_SPEED",  0.9);
     SmartDashboard.putNumber("SHOOTER_SPEED", 0.9);
+    SmartDashboard.putNumber("INTAKE_SPEED", 0.7);
 
 
     shooter.setDefaultCommand(shooter.set(0));
@@ -273,7 +274,7 @@ public void updateVision() {
 
       // ── Operator: Turret bindings ─────────────────────────────────────────
      // operatorXbox.a().onTrue(turret.setAngleCommand(0.0));
-      operatorXbox.a().whileTrue(intake.runMotorButBetter(0.7));
+      operatorXbox.a().whileTrue(intake.runMotorButBetter(SmartDashboard.getNumber("INTAKE_SPEED", 0.7)));
       operatorXbox.leftBumper().toggleOnTrue(turret.fieldAngleLockCommand().withName("TurretFieldLock"));
 
 /*
