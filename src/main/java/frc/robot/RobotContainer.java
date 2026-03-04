@@ -274,7 +274,9 @@ public void updateVision() {
 
       // ── Operator: Turret bindings ─────────────────────────────────────────
      // operatorXbox.a().onTrue(turret.setAngleCommand(0.0));
-      operatorXbox.a().whileTrue(intake.runMotorButBetter(SmartDashboard.getNumber("INTAKE_SPEED", 0.7)));
+      operatorXbox.a().whileTrue(intake.runMotorButBetter(0.85));
+      operatorXbox.y().whileTrue(intake.runMotorButBetter(-0.85));
+
       operatorXbox.leftBumper().toggleOnTrue(turret.fieldAngleLockCommand().withName("TurretFieldLock"));
 
 /*

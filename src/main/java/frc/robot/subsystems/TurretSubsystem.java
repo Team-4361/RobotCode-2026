@@ -114,10 +114,13 @@ public class TurretSubsystem extends SubsystemBase {
       .feedbackSensor(FeedbackSensor.kPrimaryEncoder)
       .pid(kP, kI, kD, ClosedLoopSlot.kSlot0);
 
+    motorConfig.inverted(true);
+
     // Configure Encoder Gear Ratio - CRITICAL FOR POSITION CONTROL
     motorConfig.encoder
-      .positionConversionFactor(-(1.0 / gearRatio))  // Output shaft rotations per motor rotation
-      .velocityConversionFactor(-(1.0 / gearRatio) / 60.0); // Convert RPM to RPS
+      .positionConversionFactor((1.0 / gearRatio))  // Output shaft rotations per motor rotation
+      .velocityConversionFactor((1.0 / gearRatio) / 60.0); // Convert RPM to RPS
+    
 
     // Save configuration
     motor.configure(
