@@ -49,9 +49,10 @@ public class Vision {
     private static final double MAX_POSE_AMBIGUITY = 0.15;
 
     // Standard deviations for vision measurements [x_meters, y_meters, rotation_radians].
-    // High rotation std dev = we barely trust vision rotation (rely on gyro instead).
-    private static final Matrix<N3, N1> STD_MULTI_TAG  = VecBuilder.fill(0.5, 0.5, 9999.0);
-    private static final Matrix<N3, N1> STD_SINGLE_TAG = VecBuilder.fill(0.9, 0.9, 9999.0);
+    // We use Double.MAX_VALUE for rotation so the gyro is NEVER overridden by vision
+    // unless updateHeadingWithVision is explicitly set to true.
+    private static final Matrix<N3, N1> STD_MULTI_TAG  = VecBuilder.fill(0.5, 0.5, Double.MAX_VALUE);
+    private static final Matrix<N3, N1> STD_SINGLE_TAG = VecBuilder.fill(0.9, 0.9, Double.MAX_VALUE);
 
     // Set to true ONLY if you want vision to also correct the gyro heading.
     public boolean updateHeadingWithVision = false;
@@ -61,10 +62,10 @@ public class Vision {
     // -------------------------------------------------------------------------
 
     // Camera names must match exactly what's configured in PhotonVision
-    PhotonCamera frontCameraLeft = new PhotonCamera("frontCameraLeft");
-    PhotonCamera frontCameraRight  = new PhotonCamera("frontCameraRight");
+    PhotonCamera frontCameraLeft  = new PhotonCamera("frontCameraLeft");
+    PhotonCamera frontCameraRight = new PhotonCamera("frontCameraRight");
 
-    Transform3d frontCameraLeftransform = new Transform3d(
+    Transform3d frontCameraLeftTransform = new Transform3d(
         new Translation3d(
             Units.inchesToMeters(13.5),
             Units.inchesToMeters(-8.75),
@@ -77,7 +78,7 @@ public class Vision {
         )
     );
 
-    Transform3d frontCameraRightransform = new Transform3d(
+    Transform3d frontCameraRightTransform = new Transform3d(
         new Translation3d(
             Units.inchesToMeters(13.5),
             Units.inchesToMeters(8.75),
@@ -99,13 +100,13 @@ public class Vision {
     PhotonPoseEstimator frontRightEstimator = new PhotonPoseEstimator(
         fieldLayout,
         PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-        frontCameraRightransform
+        frontCameraRightTransform
     );
 
     PhotonPoseEstimator frontLeftEstimator = new PhotonPoseEstimator(
         fieldLayout,
         PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-        frontCameraLeftransform
+        frontCameraLeftTransform
     );
 
     // -------------------------------------------------------------------------
@@ -114,7 +115,7 @@ public class Vision {
 
     Field2d frontCameraRightDebugField = new Field2d();
     Field2d frontCameraLeftDebugField  = new Field2d();
-    Field2d fusedOdometryField    = new Field2d();
+    Field2d fusedOdometryField         = new Field2d();
 
     public double timeAtLastSeen = 0.0;
 
@@ -150,10 +151,10 @@ public class Vision {
         this.drivebase = drivebaseIn;
 
         SmartDashboard.putData("Vision/FrontCamLeft Raw Pose",   frontCameraLeftDebugField);
-        SmartDashboard.putData("Vision/FrontCamRight Raw Pose",    frontCameraRightDebugField);
-        SmartDashboard.putData("Vision/Fused Odometry Pose", fusedOdometryField);
+        SmartDashboard.putData("Vision/FrontCamRight Raw Pose",  frontCameraRightDebugField);
+        SmartDashboard.putData("Vision/Fused Odometry Pose",     fusedOdometryField);
         SmartDashboard.putBoolean("Vision/Update Heading With Vision", updateHeadingWithVision);
-        SmartDashboard.putBoolean("Vision/Odometry Seeded", hasSeededOdometry);
+        SmartDashboard.putBoolean("Vision/Odometry Seeded",      hasSeededOdometry);
 
         if (Robot.isSimulation()) {
             setupSimulation();
@@ -175,11 +176,11 @@ public class Vision {
         cameraProps.setAvgLatencyMs(35);
         cameraProps.setLatencyStdDevMs(8);
 
-        frontCameraSim = new PhotonCameraSim(frontCameraLeft, cameraProps);
-        backCameraSim  = new PhotonCameraSim(frontCameraRight,  cameraProps);
+        frontCameraSim = new PhotonCameraSim(frontCameraLeft,  cameraProps);
+        backCameraSim  = new PhotonCameraSim(frontCameraRight, cameraProps);
 
-        visionSim.addCamera(frontCameraSim, frontCameraRightransform);
-        //visionSim.addCamera(backCameraSim, backCameraTransform);
+        visionSim.addCamera(frontCameraSim, frontCameraRightTransform);
+        // visionSim.addCamera(backCameraSim, backCameraTransform);
 
         frontCameraSim.enableDrawWireframe(true);
         backCameraSim.enableDrawWireframe(true);
@@ -236,11 +237,11 @@ public class Vision {
             var bestTarget = result.getBestTarget();
             if (bestTarget == null) continue;
 
-            double tagDist        = bestTarget.getBestCameraToTarget().getTranslation().getNorm();
-            double poseAmbiguity  = bestTarget.getPoseAmbiguity();
-            int    targetCount    = result.getTargets().size();
-            double poseDifference = visionPose.getTranslation().getDistance(odoPose.getTranslation());
-            boolean isMultiTag    = targetCount > 1;
+            double  tagDist        = bestTarget.getBestCameraToTarget().getTranslation().getNorm();
+            double  poseAmbiguity  = bestTarget.getPoseAmbiguity();
+            int     targetCount    = result.getTargets().size();
+            double  poseDifference = visionPose.getTranslation().getDistance(odoPose.getTranslation());
+            boolean isMultiTag     = targetCount > 1;
 
             SmartDashboard.putNumber(prefix + "Tag Distance (m)", tagDist);
             SmartDashboard.putNumber(prefix + "Pose Ambiguity",   poseAmbiguity);
@@ -253,16 +254,9 @@ public class Vision {
 
             // ---------------------------------------------------------------
             // SEEDING LOGIC
-            //
-            // Before we've had our first valid fix, skip the odometry-diff
-            // check entirely (poseDifference could be 10+ meters at startup).
-            // Once distOK + ambiguityOK pass, hard-reset odometry to that
-            // vision pose so all future diff checks are meaningful.
             // ---------------------------------------------------------------
             boolean diffOK;
             if (!hasSeededOdometry) {
-                // Pre-seed: only care about tag distance and ambiguity quality.
-                // Ignore poseDifference — odometry isn't trustworthy yet.
                 diffOK = true;
                 SmartDashboard.putString(prefix + "Diff OK Note", "Pre-seed: diff check skipped");
             } else {
@@ -285,58 +279,72 @@ public class Vision {
             // ---------------------------------------------------------------
             // First ever valid reading: hard-reset odometry so the robot
             // knows where it actually is on the field from the start.
+            // We always keep the gyro heading here — vision X/Y is reliable,
+            // vision yaw is not.
             // ---------------------------------------------------------------
             if (!hasSeededOdometry) {
                 Pose2d seedPose = new Pose2d(
                     visionPose.getTranslation(),
-                    // Keep the current gyro heading — vision X/Y is reliable,
-                    // gyro heading at startup is more reliable than vision yaw.
-                    odoPose.getRotation()
+                    odoPose.getRotation()  // always keep gyro heading on seed
                 );
                 drivebase.getSwerveDrive().resetOdometry(seedPose);
                 hasSeededOdometry = true;
                 SmartDashboard.putBoolean("Vision/Odometry Seeded", true);
                 SmartDashboard.putString(prefix + "Reject Reason", "None - SEEDED odometry");
-                // Don't also addVisionMeasurement this loop; the reset already placed us correctly.
-                // The very next loop iteration will have a tiny poseDifference and proceed normally.
                 timeAtLastSeen = Timer.getFPGATimestamp();
                 continue;
             }
 
             // ---------------------------------------------------------------
-            // Normal operation (post-seed): fuse into the Kalman filter
+            // Normal operation (post-seed): fuse into the Kalman filter.
+            //
+            // KEY FIX: We ALWAYS submit the pose with the gyro's rotation
+            // (not vision's) unless updateHeadingWithVision is explicitly true.
+            // On top of that, we use Double.MAX_VALUE for the rotation std dev
+            // so that even if something slips through, the filter will not
+            // move the heading at all.
             // ---------------------------------------------------------------
             Pose2d poseToSubmit;
             if (updateHeadingWithVision) {
+                // Use vision's full pose including its computed heading
                 poseToSubmit = visionPose;
             } else {
+                // Swap in the gyro heading — vision only corrects X and Y
                 poseToSubmit = new Pose2d(
                     visionPose.getTranslation(),
                     odoPose.getRotation()
                 );
             }
 
-            Matrix<N3, N1> stdDevs;
+            // Pick base std devs
+            Matrix<N3, N1> baseStdDevs;
             if (updateHeadingWithVision) {
-                stdDevs = isMultiTag
+                baseStdDevs = isMultiTag
                     ? VecBuilder.fill(0.4, 0.4, 0.6)
                     : VecBuilder.fill(0.8, 0.8, 1.2);
             } else {
-                stdDevs = isMultiTag ? STD_MULTI_TAG : STD_SINGLE_TAG;
+                baseStdDevs = isMultiTag ? STD_MULTI_TAG : STD_SINGLE_TAG;
             }
 
-            // Scale trust by distance - farther tag = less trust
+            // Scale X/Y trust by distance — farther tag = less trust.
+            // Rotation std dev is intentionally NOT scaled; when we're not using
+            // vision heading it stays at Double.MAX_VALUE no matter what.
             double distanceScaleFactor = 1.0 + (tagDist / MAX_TAG_DISTANCE_METERS);
-            Matrix<N3, N1> scaledStdDevs = VecBuilder.fill(
-                stdDevs.get(0, 0) * distanceScaleFactor,
-                stdDevs.get(1, 0) * distanceScaleFactor,
-                stdDevs.get(2, 0)
+
+            // Build final std devs, explicitly forcing rotation to Double.MAX_VALUE
+            // when we are not updating heading with vision. This is the core fix —
+            // it guarantees the Kalman filter ignores vision's rotation component
+            // regardless of what the pose estimator computed internally.
+            Matrix<N3, N1> finalStdDevs = VecBuilder.fill(
+                baseStdDevs.get(0, 0) * distanceScaleFactor,
+                baseStdDevs.get(1, 0) * distanceScaleFactor,
+                updateHeadingWithVision ? baseStdDevs.get(2, 0) : Double.MAX_VALUE
             );
 
             drivebase.getSwerveDrive().addVisionMeasurement(
                 poseToSubmit,
                 estimate.timestampSeconds,
-                scaledStdDevs
+                finalStdDevs
             );
 
             timeAtLastSeen = Timer.getFPGATimestamp();
