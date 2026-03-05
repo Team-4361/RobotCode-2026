@@ -229,7 +229,7 @@ public void updateVision() {
     // Command driveFieldOrientedAnglularVelocityKeyboard = drivebase.driveFieldOriented(driveAngularVelocityKeyboard);
 
     
-      turret.setDefaultCommand(turret.stopCommand());
+      turret.setDefaultCommand(turret.holdPositionCommand());
     // ── Simulation bindings ───────────────────────────────────────────────
     if (Robot.isSimulation())
     {

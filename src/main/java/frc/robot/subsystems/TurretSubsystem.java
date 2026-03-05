@@ -71,7 +71,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   private Transform2d turretOffset = new Transform2d(
     new Translation2d(0.2, 0.1),  // Change these values to match your robot!
-    new Rotation2d()  // No rotation offset
+    new Rotation2d(Math.toRadians(67.5)) //Changing rotation stuff
   );
   // Turret angle limits (in degrees)
   private static final double MIN_TURRET_ANGLE = -180.0;
@@ -611,6 +611,16 @@ public Command fieldAngleLockCommand() {
     return runOnce(this::lockFieldAngle)
         .andThen(run(() -> setAngle(calculateLockedAngle())))
         .finallyDo((interrupted) -> unlockFieldAngle());
+}
+
+
+/** * Creates a command to hold the turret at its current position.
+ * @return A command that holds the turret at its current position. Useful as a default command to prevent drift.
+ */
+
+public Command holdPositionCommand() {
+    return runOnce(() -> desiredAngleDegrees = getPositionDegrees())
+        .andThen(run(() -> setAngle(desiredAngleDegrees)));
 }
 
 /** 
