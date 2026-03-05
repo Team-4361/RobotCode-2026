@@ -54,7 +54,7 @@ public class TurretSubsystem extends SubsystemBase {
   private final double gearRatio = 120.0; // Change to your gear ratio
   
   // PID Constants - TUNE THESE FOR YOUR ROBOT
-  private final double kP = 1.5; // Start with a lower value - increase if response is too slow
+  private final double kP = 3.0; // Start with a lower value - increase if response is too slow
   private final double kI = 0.0;
   private final double kD = 0.0;
   
