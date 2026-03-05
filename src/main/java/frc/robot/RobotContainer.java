@@ -64,7 +64,7 @@ private Command shootWithFeedCommand() {
     return Commands.defer(() ->
         Commands.sequence(
             shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.9))
-                   .withTimeout(0.25),
+                   .withTimeout(0.35),
             shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.9))
                    .alongWith(
                        hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
@@ -299,10 +299,10 @@ operatorXbox.b().whileTrue(turret.manualControlCommand(() ->  -1.0, TURRET_MANUA
      // operatorXbox.y().onTrue(turret.setAngleCommand(180.0));
 
       // Left bumper: hard stop turret
-      operatorXbox.leftBumper().onTrue(turret.stopCommand());
+     // operatorXbox.leftBumper().onTrue(turret.stopCommand());
 
       // Right bumper TOGGLE: hub-lock the turret
-      operatorXbox.rightBumper().toggleOnTrue(
+      operatorXbox.rightTrigger(0.5).toggleOnTrue(
           turret.aimAtTargetCommand(getHubTarget())
                 .withName("TurretHubLock"));
 
@@ -314,7 +314,7 @@ operatorXbox.b().whileTrue(turret.manualControlCommand(() ->  -1.0, TURRET_MANUA
       // This is the ONLY way to run the hopper and feeder — they are never
       // triggered independently because a ball would jam against a stopped
       // shooter wheel. When toggled off, all three stop together.
-      operatorXbox.leftTrigger(0.5)
+      operatorXbox.rightBumper()
           .whileTrue(shootWithFeedCommand());    
         
         
