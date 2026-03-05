@@ -61,31 +61,31 @@ public class Vision {
     // -------------------------------------------------------------------------
 
     // Camera names must match exactly what's configured in PhotonVision
-    PhotonCamera frontCamera = new PhotonCamera("frontCam");
-    PhotonCamera backCamera  = new PhotonCamera("backCam");
+    PhotonCamera frontCameraLeft = new PhotonCamera("frontCameraLeft");
+    PhotonCamera frontCameraRight  = new PhotonCamera("frontCameraRight");
 
-    Transform3d frontCameraTransform = new Transform3d(
+    Transform3d frontCameraLeftransform = new Transform3d(
         new Translation3d(
-            Units.inchesToMeters(10.0),
-            Units.inchesToMeters(3.0),
-            Units.inchesToMeters(22.5)
+            Units.inchesToMeters(13.5),
+            Units.inchesToMeters(-8.75),
+            Units.inchesToMeters(19)
         ),
         new Rotation3d(
             0,
-            Units.degreesToRadians(-25),
+            Units.degreesToRadians(-26),
             Units.degreesToRadians(0)
         )
     );
 
-    Transform3d backCameraTransform = new Transform3d(
+    Transform3d frontCameraRightransform = new Transform3d(
         new Translation3d(
-            Units.inchesToMeters(10.0),
-            Units.inchesToMeters(-3.0),
-            Units.inchesToMeters(14.5)
+            Units.inchesToMeters(13.5),
+            Units.inchesToMeters(8.75),
+            Units.inchesToMeters(22.125)
         ),
         new Rotation3d(
             0,
-            Units.degreesToRadians(-25),
+            Units.degreesToRadians(-26),
             Units.degreesToRadians(0)
         )
     );
@@ -96,24 +96,24 @@ public class Vision {
 
     AprilTagFieldLayout fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
-    PhotonPoseEstimator frontEstimator = new PhotonPoseEstimator(
+    PhotonPoseEstimator frontRightEstimator = new PhotonPoseEstimator(
         fieldLayout,
         PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-        frontCameraTransform
+        frontCameraRightransform
     );
 
-    PhotonPoseEstimator backEstimator = new PhotonPoseEstimator(
+    PhotonPoseEstimator frontLeftEstimator = new PhotonPoseEstimator(
         fieldLayout,
         PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
-        backCameraTransform
+        frontCameraLeftransform
     );
 
     // -------------------------------------------------------------------------
     // DEBUG FIELDS
     // -------------------------------------------------------------------------
 
-    Field2d frontCameraDebugField = new Field2d();
-    Field2d backCameraDebugField  = new Field2d();
+    Field2d frontCameraRightDebugField = new Field2d();
+    Field2d frontCameraLeftDebugField  = new Field2d();
     Field2d fusedOdometryField    = new Field2d();
 
     public double timeAtLastSeen = 0.0;
@@ -149,8 +149,8 @@ public class Vision {
     public Vision(SwerveSubsystem drivebaseIn) {
         this.drivebase = drivebaseIn;
 
-        SmartDashboard.putData("Vision/FrontCam Raw Pose",   frontCameraDebugField);
-        SmartDashboard.putData("Vision/BackCam Raw Pose",    backCameraDebugField);
+        SmartDashboard.putData("Vision/FrontCamLeft Raw Pose",   frontCameraLeftDebugField);
+        SmartDashboard.putData("Vision/FrontCamRight Raw Pose",    frontCameraRightDebugField);
         SmartDashboard.putData("Vision/Fused Odometry Pose", fusedOdometryField);
         SmartDashboard.putBoolean("Vision/Update Heading With Vision", updateHeadingWithVision);
         SmartDashboard.putBoolean("Vision/Odometry Seeded", hasSeededOdometry);
@@ -175,10 +175,10 @@ public class Vision {
         cameraProps.setAvgLatencyMs(35);
         cameraProps.setLatencyStdDevMs(8);
 
-        frontCameraSim = new PhotonCameraSim(frontCamera, cameraProps);
-        backCameraSim  = new PhotonCameraSim(backCamera,  cameraProps);
+        frontCameraSim = new PhotonCameraSim(frontCameraLeft, cameraProps);
+        backCameraSim  = new PhotonCameraSim(frontCameraRight,  cameraProps);
 
-        visionSim.addCamera(frontCameraSim, frontCameraTransform);
+        visionSim.addCamera(frontCameraSim, frontCameraRightransform);
         //visionSim.addCamera(backCameraSim, backCameraTransform);
 
         frontCameraSim.enableDrawWireframe(true);
@@ -194,8 +194,8 @@ public class Vision {
             visionSim.update(drivebase.getSwerveDrive().getPose());
         }
 
-        processCamera(frontCamera, frontEstimator, frontCameraDebugField, "Front");
-        processCamera(backCamera,  backEstimator,  backCameraDebugField,  "Back");
+        processCamera(frontCameraRight, frontRightEstimator, frontCameraRightDebugField, "FrontRight");
+        processCamera(frontCameraLeft,  frontLeftEstimator,  frontCameraLeftDebugField,  "FrontLeft");
 
         fusedOdometryField.setRobotPose(drivebase.getSwerveDrive().getPose());
 
