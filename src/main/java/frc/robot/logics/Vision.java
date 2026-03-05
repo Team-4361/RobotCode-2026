@@ -42,6 +42,7 @@ public class Vision {
     private static final double MAX_TAG_DISTANCE_METERS = 15.5;
 
     // If the vision pose is more than this far (meters) from odometry, reject it.
+    // This check is SKIPPED until odometry has been seeded from vision once.
     private static final double MAX_VISION_ODO_DIFF_METERS = 1.0;
 
     // Pose ambiguity threshold (0 = perfect, 0.2+ = bad). Only matters for single tags.
@@ -63,37 +64,29 @@ public class Vision {
     PhotonCamera frontCamera = new PhotonCamera("frontCam");
     PhotonCamera backCamera  = new PhotonCamera("backCam");
 
-    // Both cameras: front-facing, center-mounted, 10° upward pitch.
-    //
-    // Positive X = forward, positive Y = left, positive Z = up.
-    // Positive pitch = angled upward (toward ceiling).
-    //
-    // Adjust the Translation3d values to match your actual mounting position.
-    // Currently assumes both cameras are at the front of the robot, side by side,
-    // at the same height. Tweak Y offset if they are offset left/right.
     Transform3d frontCameraTransform = new Transform3d(
         new Translation3d(
-            Units.inchesToMeters(10.0),   // Forward from robot center
-            Units.inchesToMeters(3.0),    // Slightly left of center (adjust as needed)
-            Units.inchesToMeters(22.5)    // Height above ground
+            Units.inchesToMeters(10.0),
+            Units.inchesToMeters(3.0),
+            Units.inchesToMeters(22.5)
         ),
         new Rotation3d(
-            0,                                        // Roll  (0 = level)
-            Units.degreesToRadians(-25),               // Pitch (positive = angled up)
-            Units.degreesToRadians(0)                 // Yaw   (0 = facing forward)
+            0,
+            Units.degreesToRadians(-25),
+            Units.degreesToRadians(0)
         )
     );
 
     Transform3d backCameraTransform = new Transform3d(
         new Translation3d(
-            Units.inchesToMeters(10.0),   // Also forward-facing (second front cam)
-            Units.inchesToMeters(-3.0),   // Slightly right of center (adjust as needed)
+            Units.inchesToMeters(10.0),
+            Units.inchesToMeters(-3.0),
             Units.inchesToMeters(14.5)
         ),
         new Rotation3d(
             0,
-            Units.degreesToRadians(-25),   // Same 10° upward pitch
-            Units.degreesToRadians(0)     // Also facing forward
+            Units.degreesToRadians(-25),
+            Units.degreesToRadians(0)
         )
     );
 
@@ -125,11 +118,26 @@ public class Vision {
 
     public double timeAtLastSeen = 0.0;
 
+    /**
+     * Whether we've seeded odometry from vision yet this power cycle / match.
+     *
+     * Problem this solves:
+     *   At match start, odometry is reset to (0,0) or the DS-provided starting pose.
+     *   The first vision reading might say the robot is at (8.2, 4.1) — a 9-meter
+     *   difference — which would be rejected by MAX_VISION_ODO_DIFF_METERS.
+     *   So vision could NEVER correct the initial error.
+     *
+     * Fix:
+     *   Until we get the first valid vision fix (good distance + ambiguity),
+     *   skip the odometry-diff check entirely and reset odometry outright to
+     *   that first trusted vision pose.  After that, normal filtering resumes.
+     */
+    private boolean hasSeededOdometry = false;
+
     // -------------------------------------------------------------------------
     // SIMULATION
     // -------------------------------------------------------------------------
 
-    // These are only initialized when running in simulation (Robot.isSimulation()).
     private VisionSystemSim visionSim;
     private PhotonCameraSim frontCameraSim;
     private PhotonCameraSim backCameraSim;
@@ -145,6 +153,7 @@ public class Vision {
         SmartDashboard.putData("Vision/BackCam Raw Pose",    backCameraDebugField);
         SmartDashboard.putData("Vision/Fused Odometry Pose", fusedOdometryField);
         SmartDashboard.putBoolean("Vision/Update Heading With Vision", updateHeadingWithVision);
+        SmartDashboard.putBoolean("Vision/Odometry Seeded", hasSeededOdometry);
 
         if (Robot.isSimulation()) {
             setupSimulation();
@@ -159,38 +168,28 @@ public class Vision {
         visionSim = new VisionSystemSim("main");
         visionSim.addAprilTags(fieldLayout);
 
-        // OV9281 camera properties:
-        //   - 1280x800 resolution
-        //   - 70° horizontal FOV
-        //   - 100fps capability; we simulate at a realistic 45fps
-        //   - ~35ms average latency with some jitter
         SimCameraProperties cameraProps = new SimCameraProperties();
-        cameraProps.setCalibration(1280, 800, Rotation2d.fromDegrees(70)); // width, height, horizontal FOV
-        cameraProps.setCalibError(0.20, 0.06);  // avg pixel error, std dev — OV9281 is a sharp sensor
-        cameraProps.setFPS(45);                  // conservative sim fps (camera can do 100 but coprocessor limits it)
-        cameraProps.setAvgLatencyMs(35);         // realistic USB + PhotonVision processing latency
-        cameraProps.setLatencyStdDevMs(8);       // some jitter
+        cameraProps.setCalibration(1280, 800, Rotation2d.fromDegrees(70));
+        cameraProps.setCalibError(0.20, 0.06);
+        cameraProps.setFPS(45);
+        cameraProps.setAvgLatencyMs(35);
+        cameraProps.setLatencyStdDevMs(8);
 
-        // Create simulated cameras using the same PhotonCamera objects the real code uses.
-        // This means processCamera() works IDENTICALLY in sim — no code path changes.
         frontCameraSim = new PhotonCameraSim(frontCamera, cameraProps);
         backCameraSim  = new PhotonCameraSim(backCamera,  cameraProps);
 
         visionSim.addCamera(frontCameraSim, frontCameraTransform);
-        //visionSim.addCamera(backCameraSim,  backCameraTransform);
+        //visionSim.addCamera(backCameraSim, backCameraTransform);
 
-        // Draw detected targets as wireframes in Glass / Shuffleboard simulation view
         frontCameraSim.enableDrawWireframe(true);
         backCameraSim.enableDrawWireframe(true);
     }
 
     // -------------------------------------------------------------------------
-    // MAIN UPDATE - Call this from Robot.periodic() or a subsystem periodic
+    // MAIN UPDATE
     // -------------------------------------------------------------------------
 
     public void updateVision() {
-        // In simulation: feed the current robot pose into the virtual cameras FIRST,
-        // so that getAllUnreadResults() returns realistic simulated detections.
         if (Robot.isSimulation() && visionSim != null) {
             visionSim.update(drivebase.getSwerveDrive().getPose());
         }
@@ -202,6 +201,7 @@ public class Vision {
 
         SmartDashboard.putNumber("Vision/Time Since Last Tag", Timer.getFPGATimestamp() - timeAtLastSeen);
         SmartDashboard.putBoolean("Vision/Recently Saw Tag",   hasRecentTarget());
+        SmartDashboard.putBoolean("Vision/Odometry Seeded",    hasSeededOdometry);
     }
 
     // -------------------------------------------------------------------------
@@ -213,8 +213,6 @@ public class Vision {
 
         String prefix = "Vision/" + cameraLabel + "/";
 
-        // FIX: Set reference pose each loop so single-tag fallback picks the
-        // solution closest to where we already think we are (avoids mirror-image flips).
         estimator.setReferencePose(drivebase.getSwerveDrive().getPose());
 
         List<PhotonPipelineResult> results = camera.getAllUnreadResults();
@@ -235,8 +233,6 @@ public class Vision {
             SmartDashboard.putNumber(prefix + "Raw Y",        visionPose.getY());
             SmartDashboard.putNumber(prefix + "Raw Rotation", visionPose.getRotation().getDegrees());
 
-            // FIX: getBestTarget() can return null in rare edge cases even when
-            // hasTargets() is true. Pull it out and guard against null explicitly.
             var bestTarget = result.getBestTarget();
             if (bestTarget == null) continue;
 
@@ -253,8 +249,25 @@ public class Vision {
             SmartDashboard.putBoolean(prefix + "Is Multi-Tag",    isMultiTag);
 
             boolean distOK      = tagDist < MAX_TAG_DISTANCE_METERS;
-            boolean diffOK      = poseDifference < MAX_VISION_ODO_DIFF_METERS;
             boolean ambiguityOK = isMultiTag || (poseAmbiguity < MAX_POSE_AMBIGUITY && poseAmbiguity >= 0);
+
+            // ---------------------------------------------------------------
+            // SEEDING LOGIC
+            //
+            // Before we've had our first valid fix, skip the odometry-diff
+            // check entirely (poseDifference could be 10+ meters at startup).
+            // Once distOK + ambiguityOK pass, hard-reset odometry to that
+            // vision pose so all future diff checks are meaningful.
+            // ---------------------------------------------------------------
+            boolean diffOK;
+            if (!hasSeededOdometry) {
+                // Pre-seed: only care about tag distance and ambiguity quality.
+                // Ignore poseDifference — odometry isn't trustworthy yet.
+                diffOK = true;
+                SmartDashboard.putString(prefix + "Diff OK Note", "Pre-seed: diff check skipped");
+            } else {
+                diffOK = poseDifference < MAX_VISION_ODO_DIFF_METERS;
+            }
 
             boolean accepted = distOK && diffOK && ambiguityOK;
 
@@ -269,6 +282,30 @@ public class Vision {
                 continue;
             }
 
+            // ---------------------------------------------------------------
+            // First ever valid reading: hard-reset odometry so the robot
+            // knows where it actually is on the field from the start.
+            // ---------------------------------------------------------------
+            if (!hasSeededOdometry) {
+                Pose2d seedPose = new Pose2d(
+                    visionPose.getTranslation(),
+                    // Keep the current gyro heading — vision X/Y is reliable,
+                    // gyro heading at startup is more reliable than vision yaw.
+                    odoPose.getRotation()
+                );
+                drivebase.getSwerveDrive().resetOdometry(seedPose);
+                hasSeededOdometry = true;
+                SmartDashboard.putBoolean("Vision/Odometry Seeded", true);
+                SmartDashboard.putString(prefix + "Reject Reason", "None - SEEDED odometry");
+                // Don't also addVisionMeasurement this loop; the reset already placed us correctly.
+                // The very next loop iteration will have a tiny poseDifference and proceed normally.
+                timeAtLastSeen = Timer.getFPGATimestamp();
+                continue;
+            }
+
+            // ---------------------------------------------------------------
+            // Normal operation (post-seed): fuse into the Kalman filter
+            // ---------------------------------------------------------------
             Pose2d poseToSubmit;
             if (updateHeadingWithVision) {
                 poseToSubmit = visionPose;
@@ -318,6 +355,20 @@ public class Vision {
     /** Returns true if we've seen a tag recently (within 0.5s). */
     public boolean hasRecentTarget() {
         return (Timer.getFPGATimestamp() - timeAtLastSeen) < 0.5;
+    }
+
+    /** Returns true if vision has successfully seeded odometry this session. */
+    public boolean isOdometrySeeded() {
+        return hasSeededOdometry;
+    }
+
+    /**
+     * Call this if odometry is manually reset (e.g. at the start of a new match
+     * or during autonomous setup) so vision will re-seed from the next good reading.
+     */
+    public void resetSeedFlag() {
+        hasSeededOdometry = false;
+        SmartDashboard.putBoolean("Vision/Odometry Seeded", false);
     }
 
     /**
