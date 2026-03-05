@@ -66,13 +66,25 @@ public class SwerveSubsystem extends SubsystemBase
    */
    public SwerveSubsystem(File directory)
   { 
-    boolean blueAlliance = false;
-    Pose2d startingPose = blueAlliance ? new Pose2d(new Translation2d(Meter.of(1),
-                                                                      Meter.of(4)),
-                                                    Rotation2d.fromDegrees(0))
-                                       : new Pose2d(new Translation2d(Meter.of(16),
-                                                                      Meter.of(4)),
-                                                    Rotation2d.fromDegrees(180));
+
+    // -----------------------------------------------------------------------
+    // FIX: Read the actual alliance from DriverStation instead of hardcoding.
+    //
+    // At robot startup (in the pits, on the field), DriverStation.getAlliance()
+    // may not yet be available — it returns empty until the DS connects and
+    // sends the alliance. So we default to BLUE (0 degrees) when unknown.
+    //
+    // Vision will re-seed X/Y from AprilTags once the match starts anyway,
+    // so the exact starting translation matters less than getting the heading
+    // right. Blue = 0°, Red = 180°.
+    // -----------------------------------------------------------------------
+    var alliance = DriverStation.getAlliance();
+    boolean isRedAlliance = alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red;
+
+    Pose2d startingPose = isRedAlliance
+        ? new Pose2d(new Translation2d(Meter.of(16), Meter.of(4)), Rotation2d.fromDegrees(180))
+        : new Pose2d(new Translation2d(Meter.of(1),  Meter.of(4)), Rotation2d.fromDegrees(0));
+
     // Configure the Telemetry before creating the SwerveDrive to avoid unnecessary objects being created.
     SwerveDriveTelemetry.verbosity = TelemetryVerbosity.HIGH;
     try

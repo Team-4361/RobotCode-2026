@@ -4,20 +4,16 @@
 
 package frc.robot;
 
-import com.ctre.phoenix6.SignalLogger;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
-import edu.wpi.first.math.controller.ProfiledPIDController;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
-import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -25,8 +21,6 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
-import edu.wpi.first.wpilibj2.command.button.Trigger;
-import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.Constants.OperatorConstants;
 import frc.robot.logics.Vision;
 import frc.robot.subsystems.IntakeSubsystem;
@@ -36,317 +30,243 @@ import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 
-import static edu.wpi.first.units.Units.RPM;
-
 import java.io.File;
 import java.util.Optional;
 import java.util.Set;
 
 import swervelib.SwerveInputStream;
 
-
-/**
- * This class is where the bulk of the robot should be declared. Since Command-based is a "declarative" paradigm, very
- * little robot logic should actually be handled in the {@link Robot} periodic methods (other than the scheduler calls).
- * Instead, the structure of the robot (including subsystems, commands, and trigger mappings) should be declared here.
- */
-
-
-
- 
 public class RobotContainer
 {
 
+    // ========== FIELD CONSTANTS ==========
+    private static final double FIELD_LENGTH_M = Units.inchesToMeters(651.25);
 
-  
-//shooted at 9ft 75 percent 
-private Command shootWithFeedCommand() {
-    return Commands.defer(() ->
-        Commands.sequence(
-            shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.9))
-                   .withTimeout(0.35),
-            shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.9))
-                   .alongWith(
-                       hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
-                       feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
-                   )
-        ).withName("ShootWithFeed"),
-        Set.of(shooter, hopper, feeder)
-    );
-}
+    public static final Translation2d HUB_CENTER_BLUE =
+        new Translation2d(Units.inchesToMeters(182.11), Units.inchesToMeters(158.84));
 
+    public static final Translation2d HUB_CENTER_RED =
+        new Translation2d(FIELD_LENGTH_M - Units.inchesToMeters(182.11),
+                          Units.inchesToMeters(158.84));
 
+    // ========== CONTROLLERS ==========
+    final CommandJoystick joystickL     = new CommandJoystick(0);
+    final CommandJoystick joystickR     = new CommandJoystick(1);
+    double xV = 0;
+    double yV = 0;
+    double rV = 0;
+    final CommandXboxController operatorXbox = new CommandXboxController(2);
+    final CommandXboxController testXbox     = new CommandXboxController(3);
 
+    // ========== SUBSYSTEMS ==========
+    public final static SwerveSubsystem drivebase = new SwerveSubsystem(
+        new File(Filesystem.getDeployDirectory(), "swerve/neo"));
 
+    private final Vision vision = new Vision(drivebase);
 
-  // ========== FIELD CONSTANTS ==========
-  private static final double FIELD_LENGTH_M = Units.inchesToMeters(651.25);
+    SlewRateLimiter xfilter = new SlewRateLimiter(4);
+    SlewRateLimiter yfilter = new SlewRateLimiter(4);
+    SlewRateLimiter rfilter = new SlewRateLimiter(4);
 
-  public static final Translation2d HUB_CENTER_BLUE =
-      new Translation2d(Units.inchesToMeters(182.11), Units.inchesToMeters(158.84));
+    private final IntakeSubsystem  intake  = new IntakeSubsystem();
+    private final HopperSubsystem  hopper  = new HopperSubsystem();
+    private final FeederSubsystem  feeder  = new FeederSubsystem();
+    private final TurretSubsystem  turret  = new TurretSubsystem(drivebase);
+    private final ShooterSubsystem shooter = new ShooterSubsystem();
 
-  public static final Translation2d HUB_CENTER_RED =
-      new Translation2d(FIELD_LENGTH_M - Units.inchesToMeters(182.11),
-                        Units.inchesToMeters(158.84));
+    private static final double TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC = 90.0;
 
-  // ========== CONTROLLERS ==========
-  final CommandJoystick joystickL   = new CommandJoystick(0);
-  final CommandJoystick joystickR   = new CommandJoystick(1);
-  double xV = 0;
-  double yV = 0;
-  double rV = 0;
-  final CommandXboxController operatorXbox = new CommandXboxController(2);
-  final CommandXboxController testXbox = new CommandXboxController(3);
+    private SendableChooser<Command> autoChooser;
 
+    private final Command teleopFlightDriveCommand = drivebase.driveFieldOriented(
+        SwerveInputStream.of(drivebase.getSwerveDrive(), () -> xV, () -> yV)
+                         .withControllerRotationAxis(() -> rV)
+                         .deadband(OperatorConstants.DEADBAND)
+                         .scaleTranslation(0.8)
+                         .allianceRelativeControl(true));
 
-
-  // ========== SUBSYSTEMS ==========
-  public final static SwerveSubsystem drivebase = new SwerveSubsystem(
-      new File(Filesystem.getDeployDirectory(), "swerve/neo"));
-
-  private final Vision vision = new Vision(drivebase);
-
-  SlewRateLimiter xfilter = new SlewRateLimiter(4);
-  SlewRateLimiter yfilter = new SlewRateLimiter(4);
-  SlewRateLimiter rfilter = new SlewRateLimiter(4);
-
-  private final IntakeSubsystem  intake  = new IntakeSubsystem();
-  private final HopperSubsystem  hopper  = new HopperSubsystem();
-  private final FeederSubsystem  feeder  = new FeederSubsystem();
-  private final TurretSubsystem  turret  = new TurretSubsystem(drivebase);
-  private final ShooterSubsystem shooter = new ShooterSubsystem();
-
-  // Vision auto-runs via its periodic() — no manual calls needed anywhere.
-  //private final Vision vision = new Vision(drivebase);
-
-  // ========== TURRET CONFIG ==========
-  private static final double TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC = 90.0;
-
-  // ========== FEED SYSTEM SPEEDS ==========
-  private static final double HOPPER_SPEED = 0.5;
-  private static final double FEEDER_SPEED = 0.5;
-
-  // =========================================================================
-  //  SHOOT COMMAND FACTORY
-  //
-  //  Rules:
-  //    - Hopper and feeder MUST always run together with the shooter.
-  //      Running hopper/feeder without the shooter will jam balls at
-  //      the shooter wheel since there's nothing to clear them out.
-  //    - Shooter CAN run alone (spin-up / warm-up before feeding).
-  //    - The ONLY way to run hopper/feeder is through shootWithFeedCommand().
-  // =========================================================================
-
-  /**
-   * Full shoot command: runs shooter, hopper, and feeder all at the same time.
-   * This is the ONLY command that runs the hopper and feeder — they are never
-   * started independently because balls would jam at a stationary shooter wheel.
-   *
-   * When toggled off, all three stop together automatically.
-   */
-
-
-
-  // ========== AUTO ==========
-  private SendableChooser<Command> autoChooser;
-
-
-  // ========== SWERVE INPUT STREAMS ==========
-
-  
-  private final Command teleopFlightDriveCommand = drivebase.driveFieldOriented(
-      SwerveInputStream.of(drivebase.getSwerveDrive(), () -> xV, () -> yV)
-                       .withControllerRotationAxis(() -> rV)
-                       .deadband(OperatorConstants.DEADBAND)
-                       .scaleTranslation(0.8)
-                       .allianceRelativeControl(true));
-
-
-  /**
-   * The container for the robot. Contains subsystems, OI devices, and commands.
-   */
-  public RobotContainer()
-  {
-
-
-    SmartDashboard.putNumber("HOPPER_SPEED",  1.0);
-    SmartDashboard.putNumber("FEEDER_SPEED",  0.9);
-    SmartDashboard.putNumber("SHOOTER_SPEED", 0.9);
-    SmartDashboard.putNumber("INTAKE_SPEED", 0.7);
-
-
-    shooter.setDefaultCommand(shooter.set(0));
-    hopper.setDefaultCommand(hopper.stopMotorCommand());
-    feeder.setDefaultCommand(feeder.stopMotorCommand());
-
-
-    registerNamedCommands();
-    configureBindings();
-    DriverStation.silenceJoystickConnectionWarning(true);
-
-    autoChooser = AutoBuilder.buildAutoChooser("New Auto");
-    SmartDashboard.putData("Auto Chooser", autoChooser);
-
-    if (autoChooser.getSelected() == null) {
-      RobotModeTriggers.autonomous().onTrue(Commands.runOnce(drivebase::zeroGyroWithAlliance));
-    }
-  }
-
-public void updateVision() {
-    vision.updateVision();
-}
-  private void registerNamedCommands()
-  {
-    // Turret
-    NamedCommands.registerCommand("SetTurretAngle_0",   turret.setAngleCommand(0.0));
-    NamedCommands.registerCommand("SetTurretAngle_90",  turret.setAngleCommand(90.0));
-    NamedCommands.registerCommand("SetTurretAngle_180", turret.setAngleCommand(180.0));
-    NamedCommands.registerCommand("SetTurretAngle_-90", turret.setAngleCommand(-90.0));
-    NamedCommands.registerCommand("TurretAimForward",   turret.moveToAngleCommand(0.0).withTimeout(3.0));
-    NamedCommands.registerCommand("TurretAimHub",       turret.aimAtTargetCommand(getHubTarget()).withTimeout(3.0));
-
-    // Intake
-    NamedCommands.registerCommand("runIntake",   intake.runMotorCommand(0.5));
-    NamedCommands.registerCommand("stopIntake",  intake.stopMotorCommand());
-
-    // Shooter spin-up without feeding (e.g. pre-spin while still path-following)
-    NamedCommands.registerCommand("ShooterSpinUp", shooter.aimAtHubContinuous(drivebase));
-    NamedCommands.registerCommand("ShooterStop",   Commands.runOnce(() -> shooter.set(0), shooter));
-
-    // Full shoot: shooter + hopper + feeder.
-    // This is the ONLY named command that runs the hopper and feeder.
-    // Never register a standalone "runHopper" or "runFeeder" — use this instead.
-    NamedCommands.registerCommand("Shoot", shootWithFeedCommand());
-  }
-
-
-  private void configureBindings()
-  {
-    // Command driveFieldOrientedDirectAngle              = drivebase.driveFieldOriented(driveDirectAngle);
-    // Command driveFieldOrientedAnglularVelocity         = drivebase.driveFieldOriented(driveAngularVelocity);
-    // Command driveRobotOrientedAngularVelocity          = drivebase.driveFieldOriented(driveRobotOriented);
-    // Command driveFieldOrientedDirectAngleKeyboard      = drivebase.driveFieldOriented(driveDirectAngleKeyboard);
-    // Command driveFieldOrientedAnglularVelocityKeyboard = drivebase.driveFieldOriented(driveAngularVelocityKeyboard);
-
-    
-      turret.setDefaultCommand(turret.holdPositionCommand());
-    // ── Simulation bindings ───────────────────────────────────────────────
-    if (Robot.isSimulation())
+    public RobotContainer()
     {
+        SmartDashboard.putNumber("HOPPER_SPEED",  1.0);
+        SmartDashboard.putNumber("FEEDER_SPEED",  0.9);
+        SmartDashboard.putNumber("SHOOTER_SPEED", 0.9);
+        SmartDashboard.putNumber("INTAKE_SPEED",  0.7);
 
-      testXbox.a().whileTrue(Commands.runOnce(drivebase::zeroGyro));
-      testXbox.b().whileTrue(Commands.runOnce(drivebase::zeroGyroWithAlliance));
-      Pose2d target = new Pose2d(new Translation2d(2.772, 4.062), Rotation2d.fromDegrees(0));
+        shooter.setDefaultCommand(shooter.set(0));
+        hopper.setDefaultCommand(hopper.stopMotorCommand());
+        feeder.setDefaultCommand(feeder.stopMotorCommand());
 
-        testXbox.x().whileTrue(drivebase.driveToPose(target));
+        registerNamedCommands();
+        configureBindings();
+        DriverStation.silenceJoystickConnectionWarning(true);
 
-    //  driverXbox.start().onTrue(Commands.runOnce(
-     //     () -> drivebase.resetOdometry(new Pose2d(3, 3, new Rotation2d()))));
-     // driverXbox.button(1).whileTrue(drivebase.sysIdDriveMotorCommand());
+        autoChooser = AutoBuilder.buildAutoChooser("New Auto");
+        SmartDashboard.putData("Auto Chooser", autoChooser);
 
-           
+        // FIX: Use RobotModeTriggers.autonomous() unconditionally.
+        // The old null-check on autoChooser.getSelected() was unreliable —
+        // getSelected() at construction time always returns the default anyway.
+        // We always want to zero+re-seed at auto init regardless.
+        RobotModeTriggers.autonomous().onTrue(
+            Commands.runOnce(this::zeroGyroAndReseed)
+        );
     }
 
-    // ── Test mode bindings ────────────────────────────────────────────────
-    if (DriverStation.isTest())
+    // =========================================================================
+    // VISION UPDATE — call this from Robot.robotPeriodic() every loop
+    // =========================================================================
+    public void updateVision()
     {
-      // driverXbox.x().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
-      // driverXbox.start().onTrue(Commands.runOnce(drivebase::zeroGyro));
-      // driverXbox.back().whileTrue(drivebase.centerModulesCommand());
-      // driverXbox.leftBumper().onTrue(Commands.none());
-      // driverXbox.rightBumper().onTrue(Commands.none());
-/*
-      operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-      operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-      operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
-      operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
-       */
+        vision.updateVision();
     }
-    else
+
+    // =========================================================================
+    // SAFE GYRO ZERO
+    //
+    // This is the ONLY method that should be called to zero the gyro.
+    // It handles three things in order:
+    //   1. Zero the gyro (NavX heading → 0)
+    //   2. Apply alliance offset (red alliance robots face 180°, blue face 0°)
+    //   3. Tell vision to re-seed odometry from the next good AprilTag reading,
+    //      because after a gyro zero the stored odometry heading is now wrong
+    //      relative to what vision expects.
+    //
+    // WHY re-seed?
+    //   After zeroGyroWithAlliance(), the X/Y in odometry is still wherever
+    //   the robot physically is, but vision's hasSeededOdometry=true means it
+    //   will run the poseDifference check. If the robot moved since last seed
+    //   that diff could be fine — but the heading is now authoritative from
+    //   the gyro, not vision, so we just let vision re-confirm X/Y on the
+    //   next good tag read without resetting the seed flag entirely.
+    //   Actually, we DO reset the seed flag so vision hard-resets X/Y too,
+    //   because after a gyro zero the driver has declared "I know where I am"
+    //   and vision should confirm it ASAP.
+    // =========================================================================
+    private void zeroGyroAndReseed()
     {
-      // ── Driver bindings ──────────────────────────────────────────────────
-      joystickL.button(12).onTrue(Commands.runOnce(drivebase::zeroGyro));
-      // driverXbox.leftBumper().whileTrue(Commands.runOnce(drivebase::lock, drivebase).repeatedly());
-      joystickL.button(5).onTrue(Commands.runOnce(
-          () -> drivebase.resetOdometry(new Pose2d(0, 0, new Rotation2d(Math.PI)))));
-      joystickL.button(3).onTrue(Commands.runOnce(
-          () -> drivebase.resetOdometry(new Pose2d(15.511, 6.537, new Rotation2d()))));
+        // Step 1 & 2: zero gyro with correct alliance heading
+        drivebase.zeroGyroWithAlliance();
 
-      // ── Operator: Turret bindings ─────────────────────────────────────────
-     // operatorXbox.a().onTrue(turret.setAngleCommand(0.0));
-      operatorXbox.a().whileTrue(intake.runMotorButBetter(0.85));
-      operatorXbox.y().whileTrue(intake.runMotorButBetter(-0.85));
+        // Step 3: tell vision to re-seed X/Y from the next good tag reading.
+        // This clears hasSeededOdometry so the diff check is skipped once,
+        // letting vision hard-reset position without fighting the old odometry.
+        vision.resetSeedFlag();
+    }
 
-      operatorXbox.leftBumper().toggleOnTrue(turret.fieldAngleLockCommand().withName("TurretFieldLock"));
+    // =========================================================================
+    // SHOOT COMMAND FACTORY
+    // =========================================================================
+    private Command shootWithFeedCommand()
+    {
+        return Commands.defer(() ->
+            Commands.sequence(
+                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.9))
+                       .withTimeout(0.35),
+                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.9))
+                       .alongWith(
+                           hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
+                           feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
+                       )
+            ).withName("ShootWithFeed"),
+            Set.of(shooter, hopper, feeder)
+        );
+    }
 
-/*
-    operatorXbox.leftBumper().onTrue(Commands.runOnce(SignalLogger::start));
-    operatorXbox.rightBumper().onTrue(Commands.runOnce(SignalLogger::stop));
+    private void registerNamedCommands()
+    {
+        NamedCommands.registerCommand("SetTurretAngle_0",   turret.setAngleCommand(0.0));
+        NamedCommands.registerCommand("SetTurretAngle_90",  turret.setAngleCommand(90.0));
+        NamedCommands.registerCommand("SetTurretAngle_180", turret.setAngleCommand(180.0));
+        NamedCommands.registerCommand("SetTurretAngle_-90", turret.setAngleCommand(-90.0));
+        NamedCommands.registerCommand("TurretAimForward",   turret.moveToAngleCommand(0.0).withTimeout(3.0));
+        NamedCommands.registerCommand("TurretAimHub",       turret.aimAtTargetCommand(getHubTarget()).withTimeout(3.0));
 
-    // SysId tests
-    operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-    operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-    operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
-    operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
- */
+        NamedCommands.registerCommand("runIntake",   intake.runMotorCommand(0.5));
+        NamedCommands.registerCommand("stopIntake",  intake.stopMotorCommand());
 
+        NamedCommands.registerCommand("ShooterSpinUp", shooter.aimAtHubContinuous(drivebase));
+        NamedCommands.registerCommand("ShooterStop",   Commands.runOnce(() -> shooter.set(0), shooter));
+        NamedCommands.registerCommand("Shoot",         shootWithFeedCommand());
+    }
 
- operatorXbox.x().whileTrue(turret.manualControlCommand(() -> 1.0, TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC));
-operatorXbox.b().whileTrue(turret.manualControlCommand(() ->  -1.0, TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC));
+    private void configureBindings()
+    {
+        turret.setDefaultCommand(turret.holdPositionCommand());
 
-     // operatorXbox.b().onTrue(turret.setAngleCommand(90.0));
-     // operatorXbox.x().onTrue(turret.setAngleCommand(-90.0));
-     // operatorXbox.y().onTrue(turret.setAngleCommand(180.0));
+        // ── Simulation bindings ───────────────────────────────────────────────
+        if (Robot.isSimulation())
+        {
+            // FIX: Use zeroGyroAndReseed() instead of raw zeroGyro() so vision
+            // re-seeds after every manual zero, even in sim.
+            testXbox.a().whileTrue(Commands.runOnce(this::zeroGyroAndReseed));
+            testXbox.b().whileTrue(Commands.runOnce(this::zeroGyroAndReseed));
 
-      // Left bumper: hard stop turret
-     // operatorXbox.leftBumper().onTrue(turret.stopCommand());
-
-      // Right bumper TOGGLE: hub-lock the turret
-      operatorXbox.rightTrigger(0.5).toggleOnTrue(
-          turret.aimAtTargetCommand(getHubTarget())
-                .withName("TurretHubLock"));
-
-      // ── Operator: Shoot binding ───────────────────────────────────────────
-      //
-      // Left trigger (>50%) TOGGLE — full shoot mode.
-      //
-      // Runs shooter + hopper + feeder simultaneously.
-      // This is the ONLY way to run the hopper and feeder — they are never
-      // triggered independently because a ball would jam against a stopped
-      // shooter wheel. When toggled off, all three stop together.
-      operatorXbox.rightBumper()
-          .whileTrue(shootWithFeedCommand());    
-        
-        
+            Pose2d target = new Pose2d(new Translation2d(2.772, 4.062), Rotation2d.fromDegrees(0));
+            testXbox.x().whileTrue(drivebase.driveToPose(target));
         }
-  }
 
+        if (DriverStation.isTest())
+        {
+            // test mode bindings here if needed
+        }
+        else
+        {
+            // ── Driver bindings ──────────────────────────────────────────────────
 
-  /**
-   * Returns the correct hub Translation2d for the current alliance.
-   * Falls back to blue if the Driver Station hasn't reported an alliance yet.
-   */
-  private Translation2d getHubTarget()
-  {
-    Optional<Alliance> alliance = DriverStation.getAlliance();
-    if (alliance.isPresent() && alliance.get() == Alliance.Red) {
-      return HUB_CENTER_RED;
+            // FIX: Was drivebase::zeroGyro (no alliance, no vision re-seed).
+            // Now calls zeroGyroAndReseed() which handles all three steps.
+            joystickL.button(12).onTrue(Commands.runOnce(this::zeroGyroAndReseed));
+
+            joystickL.button(5).onTrue(Commands.runOnce(
+                () -> {
+                    drivebase.resetOdometry(new Pose2d(0, 0, new Rotation2d(Math.PI)));
+                    // Re-seed after manual pose reset so vision confirms the new position
+                    vision.resetSeedFlag();
+                }
+            ));
+
+            joystickL.button(3).onTrue(Commands.runOnce(
+                () -> {
+                    drivebase.resetOdometry(new Pose2d(15.511, 6.537, new Rotation2d()));
+                    vision.resetSeedFlag();
+                }
+            ));
+
+            // ── Operator: Intake ─────────────────────────────────────────────────
+            operatorXbox.a().whileTrue(intake.runMotorButBetter(0.85));
+            operatorXbox.y().whileTrue(intake.runMotorButBetter(-0.85));
+
+            // ── Operator: Turret ─────────────────────────────────────────────────
+            operatorXbox.leftBumper().toggleOnTrue(
+                turret.fieldAngleLockCommand().withName("TurretFieldLock"));
+
+            operatorXbox.x().whileTrue(turret.manualControlCommand(() ->  1.0, TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC));
+            operatorXbox.b().whileTrue(turret.manualControlCommand(() -> -1.0, TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC));
+
+            operatorXbox.rightTrigger(0.5).toggleOnTrue(
+                turret.aimAtTargetCommand(getHubTarget()).withName("TurretHubLock"));
+
+            // ── Operator: Shoot ──────────────────────────────────────────────────
+            operatorXbox.rightBumper().whileTrue(shootWithFeedCommand());
+        }
     }
-    return HUB_CENTER_BLUE;
-  }
 
+    private Translation2d getHubTarget()
+    {
+        Optional<Alliance> alliance = DriverStation.getAlliance();
+        if (alliance.isPresent() && alliance.get() == Alliance.Red) {
+            return HUB_CENTER_RED;
+        }
+        return HUB_CENTER_BLUE;
+    }
 
-  /**
-   * Use this to pass the autonomous command to the main {@link Robot} class.
-   * @return the command to run in autonomous
-   */
-  public Command getAutonomousCommand()
-  {
-    return autoChooser.getSelected();
-  }
+    public Command getAutonomousCommand()
+    {
+        return autoChooser.getSelected();
+    }
 
-  public void setMotorBrake(boolean brake)
-  {
-    drivebase.setMotorBrake(brake);
-  }
+    public void setMotorBrake(boolean brake)
+    {
+        drivebase.setMotorBrake(brake);
+    }
 }
