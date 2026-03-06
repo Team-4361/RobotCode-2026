@@ -110,7 +110,7 @@ private Pose2d getShootTarget() {
     {
         SmartDashboard.putNumber("HOPPER_SPEED",  1.0);
         SmartDashboard.putNumber("FEEDER_SPEED",  0.9);
-        SmartDashboard.putNumber("SHOOTER_SPEED", 0.7);
+        SmartDashboard.putNumber("SHOOTER_SPEED", 0.77);
         SmartDashboard.putNumber("INTAKE_SPEED",  0.7);
 
         shooter.setDefaultCommand(shooter.set(0));
@@ -156,9 +156,9 @@ private Pose2d getShootTarget() {
     {
         return Commands.defer(() ->
             Commands.sequence(
-                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.7))
+                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77))
                        .withTimeout(0.35),
-                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.7))
+                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77))
                        .alongWith(
                            hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
                            feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
@@ -168,17 +168,29 @@ private Pose2d getShootTarget() {
         );
     }
 
-        private Command shootWithFeedCommandAuto(double shooterspeed)
+    private Command shootWithFeedCommandAuto(double shooterSpeed, double durationSeconds)
     {
         return Commands.defer(() ->
             Commands.sequence(
-                shooter.set(shooterspeed)
-                       .withTimeout(0.35),
-                shooter.set(shooterspeed)
-                       .alongWith(
-                           hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
-                           feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
-                       )
+                // Spin up shooter first
+                shooter.set(shooterSpeed)
+                    .withTimeout(0.35),
+
+                // Run shooter + hopper + feeder together for the given duration
+                shooter.set(shooterSpeed)
+                    .alongWith(
+                        hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
+                        feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
+                    )
+                    .withTimeout(durationSeconds),
+
+                // Stop all subsystems cleanly
+                shooter.set(0)
+                    .alongWith(
+                        hopper.runMotorCommand(0),
+                        feeder.runMotorCommand(0)
+                    )
+                    .withTimeout(0.1)
             ).withName("ShootWithFeed"),
             Set.of(shooter, hopper, feeder)
         );
@@ -200,7 +212,14 @@ private Pose2d getShootTarget() {
 
         NamedCommands.registerCommand("ShooterSpinUp", shooter.aimAtHubContinuous(drivebase));
         NamedCommands.registerCommand("ShooterStop",   Commands.runOnce(() -> shooter.set(0), shooter));
-        NamedCommands.registerCommand("Shoot",         shootWithFeedCommand());
+        NamedCommands.registerCommand("Shoot",         shootWithFeedCommandAuto(0.77, 6.7));
+        
+        
+        
+        
+        
+        
+        
 
     }
 
