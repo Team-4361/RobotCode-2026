@@ -21,6 +21,8 @@ import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -106,6 +108,18 @@ public class Vision {
         backCameraSim.enableDrawWireframe(true);
     }
 
+    /**
+     * Returns the hub center for the current alliance.
+     * Falls back to blue if the alliance is not yet determined.
+     */
+    public Translation2d getHubCenter() {
+        Optional<Alliance> alliance = DriverStation.getAlliance();
+        if (alliance.isPresent() && alliance.get() == Alliance.Red) {
+            return HUB_CENTER_RED;
+        }
+        return HUB_CENTER_BLUE;
+    }
+
     public void updateVision() {
         if (Robot.isSimulation() && visionSim != null)
             visionSim.update(drivebase.getSwerveDrive().getPose());
@@ -114,6 +128,14 @@ public class Vision {
         integrateCamera(frontCameraLeft,  frontLeftEstimator,  frontCameraLeftDebugField,  "FrontLeft");
 
         fusedOdometryField.setRobotPose(drivebase.getSwerveDrive().getPose());
+
+        // Publish alliance and hub center for dashboard visibility
+        Optional<Alliance> alliance = DriverStation.getAlliance();
+        SmartDashboard.putString("Vision/Alliance", alliance.map(Enum::name).orElse("UNKNOWN"));
+        Translation2d hub = getHubCenter();
+        SmartDashboard.putNumber("Vision/Hub Center X (m)", hub.getX());
+        SmartDashboard.putNumber("Vision/Hub Center Y (m)", hub.getY());
+
         SmartDashboard.putNumber("Vision/Time Since Last Tag", Timer.getFPGATimestamp() - timeAtLastSeen);
         SmartDashboard.putBoolean("Vision/Recently Saw Tag",   hasRecentTarget());
     }
@@ -156,6 +178,16 @@ public class Vision {
             }
 
             SmartDashboard.putBoolean("Vision/" + cameraLabel + "/ACCEPTED", true);
+
+            // -----------------------------------------------------------------
+            // Hub distance from vision pose, using alliance-correct hub center.
+            // -----------------------------------------------------------------
+            Translation2d hubCenter = getHubCenter();
+            double hubDistM  = pvPose.getTranslation().getDistance(hubCenter);
+            double hubDistIn = Units.metersToInches(hubDistM);
+            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Hub Distance (m)",  hubDistM);
+            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Hub Distance (in)", hubDistIn);
+
 
             // -----------------------------------------------------------------
             // Submit vision measurement using gyro heading for rotation.

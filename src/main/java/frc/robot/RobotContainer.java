@@ -204,6 +204,8 @@ private Pose2d getShootTarget() {
         NamedCommands.registerCommand("SetTurretAngle_90",  turret.setAngleCommand(90.0));
         NamedCommands.registerCommand("SetTurretAngle_180", turret.setAngleCommand(180.0));
         NamedCommands.registerCommand("SetTurretAngle_-90", turret.setAngleCommand(-90.0));
+                NamedCommands.registerCommand("SetTurretAngle_-20", turret.setAngleCommand(-20.0));
+
         NamedCommands.registerCommand("TurretAimForward",   turret.moveToAngleCommand(0.0).withTimeout(3.0));
         NamedCommands.registerCommand("TurretAimHub",       turret.aimAtTargetCommand(getHubTarget()).withTimeout(3.0));
 
