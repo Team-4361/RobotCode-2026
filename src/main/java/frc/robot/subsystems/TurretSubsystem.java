@@ -71,7 +71,7 @@ public class TurretSubsystem extends SubsystemBase {
 
   private Transform2d turretOffset = new Transform2d(
     new Translation2d(0.2, 0.1),  // Change these values to match your robot!
-    new Rotation2d(Math.toRadians(62.5)) //Changing rotation stuff
+    new Rotation2d(Math.toRadians(-62.5)) //Changing rotation stuff
   );
   // Turret angle limits (in degrees)
   private static final double MIN_TURRET_ANGLE = -180.0;

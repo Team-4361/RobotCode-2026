@@ -18,6 +18,7 @@ import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.Timer;
@@ -32,6 +33,16 @@ public class Vision {
 
     PhotonCamera frontCameraLeft  = new PhotonCamera("frontCameraLeft");
     PhotonCamera frontCameraRight = new PhotonCamera("frontCameraRight");
+    // ========== FIELD CONSTANTS ==========
+    private static final double FIELD_LENGTH_M = Units.inchesToMeters(651.25);
+    private static final double FIELD_WIDTH_M = Units.inchesToMeters(317.69);
+
+    public static final Translation2d HUB_CENTER_BLUE =
+        new Translation2d(Units.inchesToMeters(182.11), Units.inchesToMeters(158.84));
+
+    public static final Translation2d HUB_CENTER_RED =
+        new Translation2d(FIELD_LENGTH_M - Units.inchesToMeters(182.11),
+                          Units.inchesToMeters(158.84));
 
     Transform3d frontCameraLeftTransform = new Transform3d(
         new Translation3d(

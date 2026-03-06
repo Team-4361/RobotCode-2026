@@ -41,6 +41,7 @@ public class RobotContainer
 
     // ========== FIELD CONSTANTS ==========
     private static final double FIELD_LENGTH_M = Units.inchesToMeters(651.25);
+    private static final double FIELD_WIDTH_M = Units.inchesToMeters(317.69);
 
     public static final Translation2d HUB_CENTER_BLUE =
         new Translation2d(Units.inchesToMeters(182.11), Units.inchesToMeters(158.84));
@@ -68,6 +69,26 @@ public class RobotContainer
     SlewRateLimiter yfilter = new SlewRateLimiter(4);
     SlewRateLimiter rfilter = new SlewRateLimiter(4);
 
+
+private Pose2d mirrorPose(Pose2d pose) {
+    return new Pose2d(
+        new Translation2d(
+            FIELD_LENGTH_M - pose.getX(),
+            Math.abs(FIELD_WIDTH_M - pose.getY())
+        ),
+        pose.getRotation().rotateBy(Rotation2d.fromDegrees(180))
+    );
+}
+private Pose2d getShootTarget() {
+    Pose2d redTarget = new Pose2d(new Translation2d(15.483717765710468, 5.278244), Rotation2d.fromDegrees(-85));
+    Optional<Alliance> alliance = DriverStation.getAlliance();
+    if (alliance.isPresent() && alliance.get() == Alliance.Blue) {
+        return mirrorPose(redTarget);
+    }
+    return redTarget;
+}
+
+
     private final IntakeSubsystem  intake  = new IntakeSubsystem();
     private final HopperSubsystem  hopper  = new HopperSubsystem();
     private final FeederSubsystem  feeder  = new FeederSubsystem();
@@ -89,7 +110,7 @@ public class RobotContainer
     {
         SmartDashboard.putNumber("HOPPER_SPEED",  1.0);
         SmartDashboard.putNumber("FEEDER_SPEED",  0.9);
-        SmartDashboard.putNumber("SHOOTER_SPEED", 0.9);
+        SmartDashboard.putNumber("SHOOTER_SPEED", 0.77);
         SmartDashboard.putNumber("INTAKE_SPEED",  0.7);
 
         shooter.setDefaultCommand(shooter.set(0));
@@ -120,36 +141,12 @@ public class RobotContainer
         vision.updateVision();
     }
 
-    // =========================================================================
-    // SAFE GYRO ZERO
-    //
-    // This is the ONLY method that should be called to zero the gyro.
-    // It handles three things in order:
-    //   1. Zero the gyro (NavX heading → 0)
-    //   2. Apply alliance offset (red alliance robots face 180°, blue face 0°)
-    //   3. Tell vision to re-seed odometry from the next good AprilTag reading,
-    //      because after a gyro zero the stored odometry heading is now wrong
-    //      relative to what vision expects.
-    //
-    // WHY re-seed?
-    //   After zeroGyroWithAlliance(), the X/Y in odometry is still wherever
-    //   the robot physically is, but vision's hasSeededOdometry=true means it
-    //   will run the poseDifference check. If the robot moved since last seed
-    //   that diff could be fine — but the heading is now authoritative from
-    //   the gyro, not vision, so we just let vision re-confirm X/Y on the
-    //   next good tag read without resetting the seed flag entirely.
-    //   Actually, we DO reset the seed flag so vision hard-resets X/Y too,
-    //   because after a gyro zero the driver has declared "I know where I am"
-    //   and vision should confirm it ASAP.
-    // =========================================================================
+
     private void zeroGyroAndReseed()
     {
-        // Step 1 & 2: zero gyro with correct alliance heading
         drivebase.zeroGyroWithAlliance();
 
-        // Step 3: tell vision to re-seed X/Y from the next good tag reading.
-        // This clears hasSeededOdometry so the diff check is skipped once,
-        // letting vision hard-reset position without fighting the old odometry.
+
     }
 
     // =========================================================================
@@ -159,9 +156,9 @@ public class RobotContainer
     {
         return Commands.defer(() ->
             Commands.sequence(
-                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.9))
+                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77))
                        .withTimeout(0.35),
-                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.9))
+                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77))
                        .alongWith(
                            hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
                            feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
@@ -171,17 +168,29 @@ public class RobotContainer
         );
     }
 
-        private Command shootWithFeedCommandAuto(double shooterspeed)
+    private Command shootWithFeedCommandAuto(double shooterSpeed, double durationSeconds)
     {
         return Commands.defer(() ->
             Commands.sequence(
-                shooter.set(shooterspeed)
-                       .withTimeout(0.35),
-                shooter.set(shooterspeed)
-                       .alongWith(
-                           hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
-                           feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
-                       )
+                // Spin up shooter first
+                shooter.set(shooterSpeed)
+                    .withTimeout(0.35),
+
+                // Run shooter + hopper + feeder together for the given duration
+                shooter.set(shooterSpeed)
+                    .alongWith(
+                        hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
+                        feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
+                    )
+                    .withTimeout(durationSeconds),
+
+                // Stop all subsystems cleanly
+                shooter.set(0)
+                    .alongWith(
+                        hopper.runMotorCommand(0),
+                        feeder.runMotorCommand(0)
+                    )
+                    .withTimeout(0.1)
             ).withName("ShootWithFeed"),
             Set.of(shooter, hopper, feeder)
         );
@@ -203,8 +212,14 @@ public class RobotContainer
 
         NamedCommands.registerCommand("ShooterSpinUp", shooter.aimAtHubContinuous(drivebase));
         NamedCommands.registerCommand("ShooterStop",   Commands.runOnce(() -> shooter.set(0), shooter));
-        NamedCommands.registerCommand("Shoot",         shootWithFeedCommand());
-        NamedCommands.registerCommand("Shoot",         shootWithFeedCommand());
+        NamedCommands.registerCommand("Shoot",         shootWithFeedCommandAuto(0.77, 6.7));
+        
+        
+        
+        
+        
+        
+        
 
     }
 
@@ -230,6 +245,21 @@ public class RobotContainer
         }
         else
         {
+
+
+        joystickL.button(2).whileTrue(
+            Commands.defer(() -> {
+                Optional<Alliance> alliance = DriverStation.getAlliance();
+                Pose2d target;
+                if (alliance.isPresent() && alliance.get() == Alliance.Red) {
+                    target = new Pose2d(new Translation2d(15.483717765710468, 5.278244), Rotation2d.fromDegrees(-85));
+                } else {
+                    // Mirror X across the field for blue alliance
+                    target = new Pose2d(new Translation2d(FIELD_LENGTH_M - 15.483717765710468, 5.278244), Rotation2d.fromDegrees(-95));
+                }
+                return drivebase.driveToPose(target);
+            }, Set.of(drivebase))
+        );
             // ── Driver bindings ──────────────────────────────────────────────────
 
             // FIX: Was drivebase::zeroGyro (no alliance, no vision re-seed).
@@ -250,8 +280,7 @@ public class RobotContainer
             ));
 
             
-            Pose2d target = new Pose2d(new Translation2d(15.483717765710468, 5.278244), Rotation2d.fromDegrees(-85));
-            joystickL.button(2).whileTrue(drivebase.driveToPose(target));
+
 
             // ── Operator: Intake ─────────────────────────────────────────────────
             operatorXbox.a().whileTrue(intake.runMotorButBetter(0.85));
