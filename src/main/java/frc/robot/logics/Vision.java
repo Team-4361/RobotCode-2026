@@ -147,30 +147,30 @@ public class Vision {
             SmartDashboard.putBoolean("Vision/" + cameraLabel + "/ACCEPTED", true);
 
             // -----------------------------------------------------------------
-            // KEY FIX: Use resetOdometry instead of addVisionMeasurement.
-            //
-            // addVisionMeasurement was corrupting the heading even with 9999
-            // rotation std devs because YAGSL's internal pose estimator was
-            // still blending in the rotation component.
-            //
-            // resetOdometry with vision X/Y + current gyro rotation is 100%
-            // guaranteed to never touch the heading. Vision only corrects
-            // position, gyro owns rotation completely.
+            // Submit vision measurement using gyro heading for rotation.
+            // We pass the current gyro rotation in the pose so vision never
+            // contributes any heading change. Rotation std dev is 9999999
+            // as an extra safety net on top of that.
             // -----------------------------------------------------------------
-            Pose2d correctedPose = new Pose2d(
-                pvPose.getTranslation(), // X/Y from vision
-                odoPose.getRotation()    // rotation always from gyro, never vision
+            Pose2d poseToSubmit = new Pose2d(
+                pvPose.getTranslation(),
+                odoPose.getRotation()
             );
 
-            drivebase.getSwerveDrive().resetOdometry(correctedPose);
+            drivebase.getSwerveDrive().addVisionMeasurement(
+                poseToSubmit,
+                erp.timestampSeconds,
+                edu.wpi.first.math.VecBuilder.fill(0.5, 0.5, 9999999)
+            );
+
             timeAtLastSeen = Timer.getFPGATimestamp();
 
-            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Submitted X", correctedPose.getX());
-            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Submitted Y", correctedPose.getY());
-            SmartDashboard.putString("Vision/" + cameraLabel + "/Status",      "ACCEPTED - pose reset");
+            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Submitted X", poseToSubmit.getX());
+            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Submitted Y", poseToSubmit.getY());
+            SmartDashboard.putString("Vision/" + cameraLabel + "/Status",      "ACCEPTED");
 
-            System.out.println(String.format("  [%s] Pose reset X=%.3f Y=%.3f rot=%.1fdeg (gyro heading kept)",
-                cameraLabel, correctedPose.getX(), correctedPose.getY(), correctedPose.getRotation().getDegrees()));
+            System.out.println(String.format("  [%s] Vision fused X=%.3f Y=%.3f rot=%.1fdeg (gyro heading kept)",
+                cameraLabel, poseToSubmit.getX(), poseToSubmit.getY(), poseToSubmit.getRotation().getDegrees()));
         }
     }
 
