@@ -204,7 +204,7 @@ public class RobotContainer
         NamedCommands.registerCommand("ShooterSpinUp", shooter.aimAtHubContinuous(drivebase));
         NamedCommands.registerCommand("ShooterStop",   Commands.runOnce(() -> shooter.set(0), shooter));
         NamedCommands.registerCommand("Shoot",         shootWithFeedCommand());
-        NamedCommands.registerCommand("ShootAuto",         shootWithFeedCommandAuto(0.5));
+        NamedCommands.registerCommand("Shoot",         shootWithFeedCommand());
 
     }
 
