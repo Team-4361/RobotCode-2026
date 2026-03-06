@@ -35,19 +35,6 @@ public class Vision {
     private final SwerveSubsystem drivebase;
 
     // -------------------------------------------------------------------------
-    // TUNING CONSTANTS
-    // -------------------------------------------------------------------------
-
-    // Maximum distance (meters) from a tag before we reject the measurement.
-    private static final double MAX_TAG_DISTANCE_METERS = 15.5;
-
-    // Pose ambiguity threshold — only applied for single tag readings.
-    private static final double MAX_POSE_AMBIGUITY = 0.15;
-
-    // Set to true ONLY if you want vision to also correct the gyro heading.
-    public boolean updateHeadingWithVision = false;
-
-    // -------------------------------------------------------------------------
     // CAMERA DEFINITIONS
     // -------------------------------------------------------------------------
 
@@ -99,14 +86,22 @@ public class Vision {
     );
 
     // -------------------------------------------------------------------------
+    // SETTINGS
+    // -------------------------------------------------------------------------
+
+    public boolean updateHeadingWithVision = false;
+    public double  timeAtLastSeen          = 0.0;
+
+    // Maximum tag distance — only filter we keep from the old code
+    public double visionMaxTagDist = 15.5;
+
+    // -------------------------------------------------------------------------
     // DEBUG FIELDS
     // -------------------------------------------------------------------------
 
     Field2d frontCameraRightDebugField = new Field2d();
     Field2d frontCameraLeftDebugField  = new Field2d();
     Field2d fusedOdometryField         = new Field2d();
-
-    public double timeAtLastSeen = 0.0;
 
     // -------------------------------------------------------------------------
     // SIMULATION
@@ -151,7 +146,6 @@ public class Vision {
         frontCameraSim = new PhotonCameraSim(frontCameraLeft,  cameraProps);
         backCameraSim  = new PhotonCameraSim(frontCameraRight, cameraProps);
 
-        // FIX: Each sim camera now uses its own correct transform
         visionSim.addCamera(frontCameraSim, frontCameraLeftTransform);
         visionSim.addCamera(backCameraSim,  frontCameraRightTransform);
 
@@ -168,8 +162,8 @@ public class Vision {
             visionSim.update(drivebase.getSwerveDrive().getPose());
         }
 
-        processCamera(frontCameraRight, frontRightEstimator, frontCameraRightDebugField, "FrontRight");
-        processCamera(frontCameraLeft,  frontLeftEstimator,  frontCameraLeftDebugField,  "FrontLeft");
+        integrateCamera(frontCameraRight, frontRightEstimator, frontCameraRightDebugField, "FrontRight");
+        integrateCamera(frontCameraLeft,  frontLeftEstimator,  frontCameraLeftDebugField,  "FrontLeft");
 
         fusedOdometryField.setRobotPose(drivebase.getSwerveDrive().getPose());
 
@@ -178,108 +172,103 @@ public class Vision {
     }
 
     // -------------------------------------------------------------------------
-    // CAMERA PROCESSING
+    // CAMERA PROCESSING — ported directly from old working integrateCamera()
     // -------------------------------------------------------------------------
 
-    private void processCamera(PhotonCamera camera, PhotonPoseEstimator estimator,
-                                Field2d debugField, String cameraLabel) {
+    private void integrateCamera(PhotonCamera camera, PhotonPoseEstimator estimator,
+                                  Field2d debugField, String cameraLabel) {
 
-        String prefix = "Vision/" + cameraLabel + "/";
+        List<PhotonPipelineResult> cameraPipeline = camera.getAllUnreadResults();
 
-        estimator.setReferencePose(drivebase.getSwerveDrive().getPose());
-
-        List<PhotonPipelineResult> results = camera.getAllUnreadResults();
-
-        for (PhotonPipelineResult result : results) {
+        for (PhotonPipelineResult result : cameraPipeline) {
 
             if (!result.hasTargets()) continue;
 
-            Optional<EstimatedRobotPose> maybeEstimate = estimator.update(result);
-            if (maybeEstimate.isEmpty()) continue;
+            Optional<EstimatedRobotPose> photonPose = estimator.update(result);
+            if (photonPose.isEmpty()) continue;
 
-            EstimatedRobotPose estimate = maybeEstimate.get();
-            Pose2d visionPose = estimate.estimatedPose.toPose2d();
-            Pose2d odoPose    = drivebase.getSwerveDrive().getPose();
+            EstimatedRobotPose erp     = photonPose.get();
+            Pose2d pvPose              = erp.estimatedPose.toPose2d();
+            Pose2d odoPose             = drivebase.getSwerveDrive().getPose();
 
-            debugField.setRobotPose(visionPose);
-            SmartDashboard.putNumber(prefix + "Raw X",        visionPose.getX());
-            SmartDashboard.putNumber(prefix + "Raw Y",        visionPose.getY());
-            SmartDashboard.putNumber(prefix + "Raw Rotation", visionPose.getRotation().getDegrees());
+            // Update field visualization
+            debugField.setRobotPose(pvPose);
 
-            var bestTarget = result.getBestTarget();
-            if (bestTarget == null) continue;
+            // Dashboard debug values
+            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Raw X",        pvPose.getX());
+            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Raw Y",        pvPose.getY());
+            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Raw Rotation", pvPose.getRotation().getDegrees());
+            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Odo X Diff",   pvPose.getX() - odoPose.getX());
+            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Odo Y Diff",   pvPose.getY() - odoPose.getY());
 
-            double  tagDist       = bestTarget.getBestCameraToTarget().getTranslation().getNorm();
-            double  poseAmbiguity = bestTarget.getPoseAmbiguity();
-            int     targetCount   = result.getTargets().size();
-            boolean isMultiTag    = targetCount > 1;
+            // Console debug — same as old code
+            System.out.println(String.format("[%s] PV Pose: X=%.3f Y=%.3f rot=%.1fdeg ts=%.3f tags=%d",
+                cameraLabel,
+                pvPose.getX(), pvPose.getY(), pvPose.getRotation().getDegrees(),
+                erp.timestampSeconds, result.getTargets().size()));
+            System.out.println(String.format("[%s] ODO Pose: X=%.3f Y=%.3f rot=%.1fdeg",
+                cameraLabel,
+                odoPose.getX(), odoPose.getY(), odoPose.getRotation().getDegrees()));
 
-            SmartDashboard.putNumber(prefix + "Tag Distance (m)", tagDist);
-            SmartDashboard.putNumber(prefix + "Pose Ambiguity",   poseAmbiguity);
-            SmartDashboard.putNumber(prefix + "Target Count",     targetCount);
-            SmartDashboard.putBoolean(prefix + "Is Multi-Tag",    isMultiTag);
+            double  tagDist        = result.getBestTarget().getBestCameraToTarget().getTranslation().getNorm();
+            double  poseAmbiguity  = result.getBestTarget().getPoseAmbiguity();
+            int     targetCount    = result.getTargets().size();
+            boolean multipleTargets = targetCount > 1;
 
-            // Only two filters — tag distance and single-tag ambiguity.
-            // No odometry diff check at all, so vision always fuses in
-            // regardless of how far the pose is from current odometry.
-            boolean distOK      = tagDist < MAX_TAG_DISTANCE_METERS;
-            boolean ambiguityOK = isMultiTag || (poseAmbiguity >= 0 && poseAmbiguity < MAX_POSE_AMBIGUITY);
-            boolean accepted    = distOK && ambiguityOK;
+            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Tag Distance",   tagDist);
+            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Pose Ambiguity", poseAmbiguity);
+            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Target Count",   targetCount);
 
-            SmartDashboard.putBoolean(prefix + "Distance OK",  distOK);
-            SmartDashboard.putBoolean(prefix + "Ambiguity OK", ambiguityOK);
-            SmartDashboard.putBoolean(prefix + "ACCEPTED",     accepted);
+            // Ported directly from old code:
+            // alwaysAccept = true means we always fuse regardless of distance or diff.
+            // Only keeping tag distance as a sanity check.
+            boolean distanceOK   = tagDist < visionMaxTagDist;
+            boolean alwaysAccept = true;
 
-            if (!accepted) {
-                SmartDashboard.putString(prefix + "Reject Reason",
-                    !distOK ? "Tag too far" : "High ambiguity");
-                continue;
-            }
+            SmartDashboard.putBoolean("Vision/" + cameraLabel + "/Distance OK", distanceOK);
+            SmartDashboard.putBoolean("Vision/" + cameraLabel + "/ACCEPTED",    distanceOK || alwaysAccept);
 
-            // Always use gyro heading unless updateHeadingWithVision is on.
-            // Vision only corrects X and Y position.
-            Pose2d poseToSubmit;
-            if (updateHeadingWithVision) {
-                poseToSubmit = visionPose;
+            if (distanceOK || alwaysAccept) {
+
+                timeAtLastSeen = Timer.getFPGATimestamp();
+
+                Pose2d visionPoseToUse;
+                if (updateHeadingWithVision) {
+                    // Use vision X, Y, AND rotation
+                    visionPoseToUse = pvPose;
+                } else {
+                    // Use vision X, Y but keep current gyro rotation — same as old code
+                    visionPoseToUse = new Pose2d(
+                        pvPose.getTranslation(),
+                        odoPose.getRotation()
+                    );
+                }
+
+                // Std devs ported directly from old code — 9999 for rotation
+                // when not using vision heading, same values as old working version
+                Matrix<N3, N1> stdDevs;
+                if (updateHeadingWithVision) {
+                    stdDevs = multipleTargets
+                        ? VecBuilder.fill(0.5, 0.5, 0.7)
+                        : VecBuilder.fill(0.9, 0.9, 1.2);
+                } else {
+                    stdDevs = multipleTargets
+                        ? VecBuilder.fill(0.5, 0.5, 9999)
+                        : VecBuilder.fill(0.9, 0.9, 9999);
+                }
+
+                drivebase.getSwerveDrive().addVisionMeasurement(
+                    visionPoseToUse,
+                    erp.timestampSeconds,
+                    stdDevs
+                );
+
+                System.out.println("  [" + cameraLabel + "] Vision measurement added ("
+                    + (updateHeadingWithVision ? "with vision rotation" : "with gyro rotation") + ")");
+
             } else {
-                poseToSubmit = new Pose2d(
-                    visionPose.getTranslation(),
-                    odoPose.getRotation()  // keep gyro heading, only correct X/Y
-                );
+                System.out.println("  [" + cameraLabel + "] Vision rejected - dist:" + distanceOK);
             }
-
-            // Scale X/Y trust by distance — farther tag = less trust.
-            // Rotation std dev is Double.MAX_VALUE when not using vision heading
-            // so the Kalman filter cannot touch the heading no matter what.
-            double distanceScaleFactor = 1.0 + (tagDist / MAX_TAG_DISTANCE_METERS);
-
-            Matrix<N3, N1> finalStdDevs;
-            if (updateHeadingWithVision) {
-                finalStdDevs = VecBuilder.fill(
-                    (isMultiTag ? 0.4 : 0.8) * distanceScaleFactor,
-                    (isMultiTag ? 0.4 : 0.8) * distanceScaleFactor,
-                     isMultiTag ? 0.6 : 1.2
-                );
-            } else {
-                finalStdDevs = VecBuilder.fill(
-                    (isMultiTag ? 0.5 : 0.9) * distanceScaleFactor,
-                    (isMultiTag ? 0.5 : 0.9) * distanceScaleFactor,
-                    Double.MAX_VALUE  // never touch heading
-                );
-            }
-
-            drivebase.getSwerveDrive().addVisionMeasurement(
-                poseToSubmit,
-                estimate.timestampSeconds,
-                finalStdDevs
-            );
-
-            timeAtLastSeen = Timer.getFPGATimestamp();
-
-            SmartDashboard.putString(prefix + "Reject Reason",      "None - accepted");
-            SmartDashboard.putNumber(prefix + "Submitted X",        poseToSubmit.getX());
-            SmartDashboard.putNumber(prefix + "Submitted Y",        poseToSubmit.getY());
-            SmartDashboard.putNumber(prefix + "Submitted Rotation", poseToSubmit.getRotation().getDegrees());
         }
     }
 
