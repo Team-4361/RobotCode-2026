@@ -175,6 +175,8 @@ public class RobotContainer
     private void registerNamedCommands()
     {
         NamedCommands.registerCommand("SetTurretAngle_0",   turret.setAngleCommand(0.0));
+        NamedCommands.registerCommand("SetTurretAngle_0",   turret.setAngleCommand(62.5));
+
         NamedCommands.registerCommand("SetTurretAngle_90",  turret.setAngleCommand(90.0));
         NamedCommands.registerCommand("SetTurretAngle_180", turret.setAngleCommand(180.0));
         NamedCommands.registerCommand("SetTurretAngle_-90", turret.setAngleCommand(-90.0));
