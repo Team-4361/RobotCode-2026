@@ -150,7 +150,6 @@ public class RobotContainer
         // Step 3: tell vision to re-seed X/Y from the next good tag reading.
         // This clears hasSeededOdometry so the diff check is skipped once,
         // letting vision hard-reset position without fighting the old odometry.
-        vision.resetSeedFlag();
     }
 
     // =========================================================================
@@ -241,14 +240,12 @@ public class RobotContainer
                 () -> {
                     drivebase.resetOdometry(new Pose2d(0, 0, new Rotation2d(Math.PI)));
                     // Re-seed after manual pose reset so vision confirms the new position
-                    vision.resetSeedFlag();
                 }
             ));
 
             joystickL.button(3).onTrue(Commands.runOnce(
                 () -> {
                     drivebase.resetOdometry(new Pose2d(15.511, 6.537, new Rotation2d()));
-                    vision.resetSeedFlag();
                 }
             ));
 
