@@ -141,36 +141,12 @@ private Pose2d getShootTarget() {
         vision.updateVision();
     }
 
-    // =========================================================================
-    // SAFE GYRO ZERO
-    //
-    // This is the ONLY method that should be called to zero the gyro.
-    // It handles three things in order:
-    //   1. Zero the gyro (NavX heading → 0)
-    //   2. Apply alliance offset (red alliance robots face 180°, blue face 0°)
-    //   3. Tell vision to re-seed odometry from the next good AprilTag reading,
-    //      because after a gyro zero the stored odometry heading is now wrong
-    //      relative to what vision expects.
-    //
-    // WHY re-seed?
-    //   After zeroGyroWithAlliance(), the X/Y in odometry is still wherever
-    //   the robot physically is, but vision's hasSeededOdometry=true means it
-    //   will run the poseDifference check. If the robot moved since last seed
-    //   that diff could be fine — but the heading is now authoritative from
-    //   the gyro, not vision, so we just let vision re-confirm X/Y on the
-    //   next good tag read without resetting the seed flag entirely.
-    //   Actually, we DO reset the seed flag so vision hard-resets X/Y too,
-    //   because after a gyro zero the driver has declared "I know where I am"
-    //   and vision should confirm it ASAP.
-    // =========================================================================
+
     private void zeroGyroAndReseed()
     {
-        // Step 1 & 2: zero gyro with correct alliance heading
         drivebase.zeroGyroWithAlliance();
 
-        // Step 3: tell vision to re-seed X/Y from the next good tag reading.
-        // This clears hasSeededOdometry so the diff check is skipped once,
-        // letting vision hard-reset position without fighting the old odometry.
+
     }
 
     // =========================================================================
