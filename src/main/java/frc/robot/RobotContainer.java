@@ -41,6 +41,7 @@ public class RobotContainer
 
     // ========== FIELD CONSTANTS ==========
     private static final double FIELD_LENGTH_M = Units.inchesToMeters(651.25);
+private static final double FIELD_WIDTH_M = Units.inchesToMeters(317.69);
 
     public static final Translation2d HUB_CENTER_BLUE =
         new Translation2d(Units.inchesToMeters(182.11), Units.inchesToMeters(158.84));
@@ -68,7 +69,6 @@ public class RobotContainer
     SlewRateLimiter yfilter = new SlewRateLimiter(4);
     SlewRateLimiter rfilter = new SlewRateLimiter(4);
 
-private static final double FIELD_WIDTH_M = Units.inchesToMeters(317.69);
 
 private Pose2d mirrorPose(Pose2d pose) {
     return new Pose2d(
