@@ -217,11 +217,11 @@ public class RobotContainer
         {
             // FIX: Use zeroGyroAndReseed() instead of raw zeroGyro() so vision
             // re-seeds after every manual zero, even in sim.
+
+            //15.483717765710468, 5.278244, -85
             testXbox.a().whileTrue(Commands.runOnce(this::zeroGyroAndReseed));
             testXbox.b().whileTrue(Commands.runOnce(this::zeroGyroAndReseed));
 
-            Pose2d target = new Pose2d(new Translation2d(2.772, 4.062), Rotation2d.fromDegrees(0));
-            testXbox.x().whileTrue(drivebase.driveToPose(target));
         }
 
         if (DriverStation.isTest())
@@ -248,6 +248,10 @@ public class RobotContainer
                     drivebase.resetOdometry(new Pose2d(15.511, 6.537, new Rotation2d()));
                 }
             ));
+
+            
+            Pose2d target = new Pose2d(new Translation2d(15.483717765710468, 5.278244), Rotation2d.fromDegrees(-85));
+            joystickL.button(2).whileTrue(drivebase.driveToPose(target));
 
             // ── Operator: Intake ─────────────────────────────────────────────────
             operatorXbox.a().whileTrue(intake.runMotorButBetter(0.85));
