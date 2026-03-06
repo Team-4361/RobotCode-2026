@@ -78,12 +78,12 @@ public class RobotContainer
 
     private SendableChooser<Command> autoChooser;
 
-    private final Command teleopFlightDriveCommand = drivebase.driveFieldOriented(
-        SwerveInputStream.of(drivebase.getSwerveDrive(), () -> xV, () -> yV)
-                         .withControllerRotationAxis(() -> rV)
-                         .deadband(OperatorConstants.DEADBAND)
-                         .scaleTranslation(0.8)
-                         .allianceRelativeControl(true));
+    // private final Command teleopFlightDriveCommand = drivebase.driveFieldOriented(
+    //     SwerveInputStream.of(drivebase.getSwerveDrive(), () -> xV, () -> yV)
+    //                      .withControllerRotationAxis(() -> rV)
+    //                      .deadband(OperatorConstants.DEADBAND)
+    //                      .scaleTranslation(0.8)
+    //                      .allianceRelativeControl(true));
 
     public RobotContainer()
     {
@@ -172,6 +172,22 @@ public class RobotContainer
         );
     }
 
+        private Command shootWithFeedCommandAuto(double shooterspeed)
+    {
+        return Commands.defer(() ->
+            Commands.sequence(
+                shooter.set(shooterspeed)
+                       .withTimeout(0.35),
+                shooter.set(shooterspeed)
+                       .alongWith(
+                           hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
+                           feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
+                       )
+            ).withName("ShootWithFeed"),
+            Set.of(shooter, hopper, feeder)
+        );
+    }
+
     private void registerNamedCommands()
     {
         NamedCommands.registerCommand("SetTurretAngle_0",   turret.setAngleCommand(0.0));
@@ -189,6 +205,8 @@ public class RobotContainer
         NamedCommands.registerCommand("ShooterSpinUp", shooter.aimAtHubContinuous(drivebase));
         NamedCommands.registerCommand("ShooterStop",   Commands.runOnce(() -> shooter.set(0), shooter));
         NamedCommands.registerCommand("Shoot",         shootWithFeedCommand());
+        NamedCommands.registerCommand("Shoot",         shootWithFeedCommand());
+
     }
 
     private void configureBindings()
