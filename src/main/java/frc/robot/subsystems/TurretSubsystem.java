@@ -70,8 +70,8 @@ public class TurretSubsystem extends SubsystemBase {
 
 
   private Transform2d turretOffset = new Transform2d(
-    new Translation2d(0.2, 0.1),  // Change these values to match your robot!
-    new Rotation2d(Math.toRadians(-62.5)) //Changing rotation stuff
+    new Translation2d(Units.inchesToMeters(-6), Units.inchesToMeters(-9)),  // Change these values to match your robot!
+    new Rotation2d(Math.toRadians(-58.49979400634766)) //Changing rotation stuff
   );
   // Turret angle limits (in degrees)
   private static final double MIN_TURRET_ANGLE = -180.0;
@@ -192,8 +192,8 @@ public class TurretSubsystem extends SubsystemBase {
     
     // Calculate the ACTUAL turret position on the field
     // This transforms the turret offset by the robot's pose
-    Pose2d turretPose = robotPose.plus(turretOffset);
-    Translation2d turretPosition = turretPose.getTranslation();
+    Translation2d turretPosition = robotPose.getTranslation()
+        .plus(turretOffset.getTranslation().rotateBy(robotPose.getRotation()));
     Rotation2d robotRotation = robotPose.getRotation();
     
     // Calculate vector from TURRET position to target
@@ -205,8 +205,8 @@ public class TurretSubsystem extends SubsystemBase {
     
     // Convert to robot-relative angle
     // Subtract robot's rotation to get the angle relative to robot's front
-    double robotRelativeAngle = fieldRelativeAngle - robotRotation.getDegrees();
-    
+double robotRelativeAngle = fieldRelativeAngle - robotRotation.getDegrees() 
+    - turretOffset.getRotation().getDegrees();    
     // Normalize angle to -180 to 180 range
     robotRelativeAngle = normalizeAngle(robotRelativeAngle);
     
@@ -445,37 +445,32 @@ public void nudgeLockedAngle(double deltaDegrees) {
    * Set turret angle.
    * @param angleDegrees The target angle in degrees
    */
-  public void setAngle(double angleDegrees) {
-    // Normalize and clamp to limits
+public void setAngle(double angleDegrees) {
     angleDegrees = normalizeAngle(angleDegrees);
     angleDegrees = MathUtil.clamp(angleDegrees, MIN_TURRET_ANGLE, MAX_TURRET_ANGLE);
-    
-    // Check if we're trying to move past the limit switch
-    if (angleDegrees > LIMIT_SWITCH_ANGLE && isLimitSwitchPressed()) {
-      angleDegrees = LIMIT_SWITCH_ANGLE;
-    }
-    
-    desiredAngleDegrees = angleDegrees;
-    
-    // Convert degrees to rotations
-    double angleRadians = Units.degreesToRadians(angleDegrees);
-    double positionRotations = angleRadians / (2.0 * Math.PI);
 
-    System.out.println("========================================");
-    System.out.println("SET ANGLE CALLED");
-    System.out.println("Target Angle: " + angleDegrees + "°");
-    System.out.println("Target Position: " + positionRotations + " rotations");
-    System.out.println("Current Angle: " + getPositionDegrees() + "°");
-    System.out.println("Current Position: " + getPosition() + " rotations");
-    System.out.println("========================================");
-    
-    // Use simple position control with setReference
+    desiredAngleDegrees = angleDegrees;
+
+    double currentDegrees = getPositionDegrees();
+    double currentNormalized = normalizeAngle(currentDegrees);
+    double delta = normalizeAngle(angleDegrees - currentNormalized);
+    double targetDegrees = currentDegrees + delta;
+
+    // ===== ADD THESE LINES =====
+    // Clamp the RAW target to prevent encoder from wandering past limits
+    targetDegrees = MathUtil.clamp(targetDegrees, MIN_TURRET_ANGLE, MAX_TURRET_ANGLE);
+    // If encoder has already drifted outside limits, snap it back
+    if (currentDegrees > MAX_TURRET_ANGLE) targetDegrees = MAX_TURRET_ANGLE;
+    if (currentDegrees < MIN_TURRET_ANGLE) targetDegrees = MIN_TURRET_ANGLE;
+    // ===========================
+
+    double positionRotations = Units.degreesToRadians(targetDegrees) / (2.0 * Math.PI);
     sparkPidController.setReference(
-      positionRotations,
-      ControlType.kPosition,
-      ClosedLoopSlot.kSlot0
+        positionRotations,
+        ControlType.kPosition,
+        ClosedLoopSlot.kSlot0
     );
-  }
+}
   
   /**
    * Stop the turret.
@@ -619,8 +614,18 @@ public Command fieldAngleLockCommand() {
  */
 
 public Command holdPositionCommand() {
-    return runOnce(() -> desiredAngleDegrees = getPositionDegrees())
-        .andThen(run(() -> setAngle(desiredAngleDegrees)));
+    final double[] heldRotations = {0};
+    return runOnce(() -> {
+        // Capture the exact encoder position ONCE when command starts
+        heldRotations[0] = encoder.getPosition();
+    }).andThen(run(() -> {
+        // Hold that exact encoder position every loop, no math, no normalization
+        sparkPidController.setReference(
+            heldRotations[0],
+            ControlType.kPosition,
+            ClosedLoopSlot.kSlot0
+        );
+    }));
 }
 
 /** 

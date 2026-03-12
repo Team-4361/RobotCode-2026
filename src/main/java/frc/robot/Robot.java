@@ -7,6 +7,12 @@ package frc.robot;
 import java.io.File;
 import java.util.Optional;
 
+import org.opencv.core.Mat;
+
+import edu.wpi.first.cameraserver.CameraServer;
+import edu.wpi.first.cscore.CvSink;
+import edu.wpi.first.cscore.CvSource;
+import edu.wpi.first.cscore.UsbCamera;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -37,6 +43,7 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
   public SlewRateLimiter xfilter = new SlewRateLimiter(4);
   public SlewRateLimiter yfilter = new SlewRateLimiter(4);
   public SlewRateLimiter rfilter = new SlewRateLimiter(4);
+    Thread m_visionThread;
   public teleopController teleopwow;
 
   private static Robot   instance;
@@ -50,6 +57,8 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
   {
     teleopwow = new teleopController(joystickL, joystickR, xboxCommandJoystick);
     instance = this;
+   
+    
   }
 
   public static Robot getInstance()

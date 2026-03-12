@@ -88,6 +88,18 @@ private Pose2d getShootTarget() {
     return redTarget;
 }
 
+//    private final Command teleopFlightDriveCommand = drivebase.driveFieldOriented(
+//     SwerveInputStream.of(
+//         drivebase.getSwerveDrive(),
+//         () -> -joystickL.getY(),  // Forward/Backward
+//         () -> -joystickL.getX()   // Left/Right
+//     )
+//     .withControllerRotationAxis(() -> -joystickR.getTwist() * 0.95) // Rotation using right stick twist
+//     .deadband(OperatorConstants.DEADBAND) // Apply deadband as a setting
+//     .scaleTranslation(0.8)
+//     .allianceRelativeControl(true)
+// );
+
 
     private final IntakeSubsystem  intake  = new IntakeSubsystem();
     private final HopperSubsystem  hopper  = new HopperSubsystem();
@@ -156,8 +168,9 @@ private Pose2d getShootTarget() {
     {
         return Commands.defer(() ->
             Commands.sequence(
-                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77))
-                       .withTimeout(0.35),
+                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77)).alongWith(
+                    feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
+                ).withTimeout(0.4),
                 shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77))
                        .alongWith(
                            hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
@@ -179,7 +192,7 @@ private Pose2d getShootTarget() {
                 // Run shooter + hopper + feeder together for the given duration
                 shooter.set(shooterSpeed)
                     .alongWith(
-                        hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
+                        hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 0.9)),
                         feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
                     )
                     .withTimeout(durationSeconds),
@@ -209,13 +222,15 @@ private Pose2d getShootTarget() {
         NamedCommands.registerCommand("TurretAimForward",   turret.moveToAngleCommand(0.0).withTimeout(3.0));
         NamedCommands.registerCommand("TurretAimHub",       turret.aimAtTargetCommand(getHubTarget()).withTimeout(3.0));
 
-        NamedCommands.registerCommand("runIntake",   intake.runMotorCommand(0.5));
+        NamedCommands.registerCommand("runIntake",   intake.runMotorCommand(1.0));
         NamedCommands.registerCommand("stopIntake",  intake.stopMotorCommand());
 
         NamedCommands.registerCommand("ShooterSpinUp", shooter.aimAtHubContinuous(drivebase));
         NamedCommands.registerCommand("ShooterStop",   Commands.runOnce(() -> shooter.set(0), shooter));
         NamedCommands.registerCommand("Shoot",         shootWithFeedCommandAuto(0.77, 6.7));
-        
+        NamedCommands.registerCommand("ShootCenter",         shootWithFeedCommandAuto(0.73, 8.7));
+        NamedCommands.registerCommand("ShootFull",         shootWithFeedCommand());
+
         
         
         
@@ -266,27 +281,18 @@ private Pose2d getShootTarget() {
 
             // FIX: Was drivebase::zeroGyro (no alliance, no vision re-seed).
             // Now calls zeroGyroAndReseed() which handles all three steps.
-            joystickL.button(12).onTrue(Commands.runOnce(this::zeroGyroAndReseed));
+            joystickR.button(5).onTrue(Commands.runOnce(this::zeroGyroAndReseed));
 
-            joystickL.button(5).onTrue(Commands.runOnce(
-                () -> {
-                    drivebase.resetOdometry(new Pose2d(0, 0, new Rotation2d(Math.PI)));
-                    // Re-seed after manual pose reset so vision confirms the new position
-                }
-            ));
 
-            joystickL.button(3).onTrue(Commands.runOnce(
-                () -> {
-                    drivebase.resetOdometry(new Pose2d(15.511, 6.537, new Rotation2d()));
-                }
-            ));
+// drivebase.setDefaultCommand(teleopFlightDriveCommand);
+
 
             
 
 
             // ── Operator: Intake ─────────────────────────────────────────────────
-            operatorXbox.a().whileTrue(intake.runMotorButBetter(0.85));
-            operatorXbox.y().whileTrue(intake.runMotorButBetter(-0.85));
+            operatorXbox.a().whileTrue(intake.runMotorButBetter(1.0));
+            operatorXbox.y().whileTrue(intake.runMotorButBetter(-1.0));
 
             // ── Operator: Turret ─────────────────────────────────────────────────
             operatorXbox.leftBumper().toggleOnTrue(

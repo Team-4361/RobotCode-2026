@@ -72,7 +72,7 @@ public class Vision {
     PhotonPoseEstimator frontLeftEstimator = new PhotonPoseEstimator(
         fieldLayout, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, frontCameraLeftTransform);
 
-    public double visionMaxTagDist = 15.5;
+    public double visionMaxTagDist = 5.5;
     public double timeAtLastSeen   = 0.0;
 
     Field2d frontCameraRightDebugField = new Field2d();
@@ -127,7 +127,7 @@ public class Vision {
         integrateCamera(frontCameraRight, frontRightEstimator, frontCameraRightDebugField, "FrontRight");
         integrateCamera(frontCameraLeft,  frontLeftEstimator,  frontCameraLeftDebugField,  "FrontLeft");
 
-        fusedOdometryField.setRobotPose(drivebase.getSwerveDrive().getPose());
+        fusedOdometryField.setRobotPose(drivebase.getSwerveDrive().swerveDrivePoseEstimator.getEstimatedPosition());
 
         // Publish alliance and hub center for dashboard visibility
         Optional<Alliance> alliance = DriverStation.getAlliance();
@@ -143,78 +143,99 @@ public class Vision {
     private void integrateCamera(PhotonCamera camera, PhotonPoseEstimator estimator,
                                   Field2d debugField, String cameraLabel) {
 
-        for (PhotonPipelineResult result : camera.getAllUnreadResults()) {
+        List<PhotonPipelineResult> cameraPipeline = camera.getAllUnreadResults();
 
-            if (!result.hasTargets()) continue;
+        // Update the estimator with every result so its internal state stays
+        // current, but only submit a vision measurement for the last result.
+        // Submitting multiple measurements per loop tick hammers the Kalman
+        // filter and causes visible drive stutter.
+        Optional<EstimatedRobotPose> photonPose = Optional.empty();
+        for (int i = 0; i < cameraPipeline.size(); i++) {
+            PhotonPipelineResult result = cameraPipeline.get(i);
 
-            Optional<EstimatedRobotPose> photonPose = estimator.update(result);
-            if (photonPose.isEmpty()) continue;
-
-            EstimatedRobotPose erp = photonPose.get();
-            Pose2d pvPose  = erp.estimatedPose.toPose2d();
-            Pose2d odoPose = drivebase.getSwerveDrive().getPose();
-
-            debugField.setRobotPose(pvPose);
-
-            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Raw X",        pvPose.getX());
-            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Raw Y",        pvPose.getY());
-            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Raw Rotation", pvPose.getRotation().getDegrees());
-            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Odo X Diff",   pvPose.getX() - odoPose.getX());
-            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Odo Y Diff",   pvPose.getY() - odoPose.getY());
-
-            System.out.println(String.format("[%s] PV Pose: X=%.3f Y=%.3f rot=%.1fdeg ts=%.3f tags=%d",
-                cameraLabel, pvPose.getX(), pvPose.getY(), pvPose.getRotation().getDegrees(),
-                erp.timestampSeconds, result.getTargets().size()));
-            System.out.println(String.format("[%s] ODO Pose: X=%.3f Y=%.3f rot=%.1fdeg",
-                cameraLabel, odoPose.getX(), odoPose.getY(), odoPose.getRotation().getDegrees()));
-
-            double tagDist = result.getBestTarget().getBestCameraToTarget().getTranslation().getNorm();
-            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Tag Distance", tagDist);
-
-            if (tagDist >= visionMaxTagDist) {
-                SmartDashboard.putBoolean("Vision/" + cameraLabel + "/ACCEPTED", false);
-                System.out.println("  [" + cameraLabel + "] Rejected - tag too far: " + tagDist);
+            // Skip if no targets
+            if (!result.hasTargets()) {
                 continue;
             }
 
-            SmartDashboard.putBoolean("Vision/" + cameraLabel + "/ACCEPTED", true);
-
-            // -----------------------------------------------------------------
-            // Hub distance from vision pose, using alliance-correct hub center.
-            // -----------------------------------------------------------------
-            Translation2d hubCenter = getHubCenter();
-            double hubDistM  = pvPose.getTranslation().getDistance(hubCenter);
-            double hubDistIn = Units.metersToInches(hubDistM);
-            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Hub Distance (m)",  hubDistM);
-            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Hub Distance (in)", hubDistIn);
-
-
-            // -----------------------------------------------------------------
-            // Submit vision measurement using gyro heading for rotation.
-            // We pass the current gyro rotation in the pose so vision never
-            // contributes any heading change. Rotation std dev is 9999999
-            // as an extra safety net on top of that.
-            // -----------------------------------------------------------------
-            Pose2d poseToSubmit = new Pose2d(
-                pvPose.getTranslation(),
-                odoPose.getRotation()
-            );
-
-            drivebase.getSwerveDrive().addVisionMeasurement(
-                poseToSubmit,
-                erp.timestampSeconds,
-                edu.wpi.first.math.VecBuilder.fill(0.5, 0.5, 9999999)
-            );
-
-            timeAtLastSeen = Timer.getFPGATimestamp();
-
-            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Submitted X", poseToSubmit.getX());
-            SmartDashboard.putNumber("Vision/" + cameraLabel + "/Submitted Y", poseToSubmit.getY());
-            SmartDashboard.putString("Vision/" + cameraLabel + "/Status",      "ACCEPTED");
-
-            System.out.println(String.format("  [%s] Vision fused X=%.3f Y=%.3f rot=%.1fdeg (gyro heading kept)",
-                cameraLabel, poseToSubmit.getX(), poseToSubmit.getY(), poseToSubmit.getRotation().getDegrees()));
+            photonPose = estimator.update(result);
         }
+
+        // Nothing usable in this batch — bail out
+        if (photonPose.isEmpty()) return;
+
+        // Use the last result for tag distance check and dashboard/submission
+        PhotonPipelineResult lastResult = cameraPipeline.get(cameraPipeline.size() - 1);
+        if (!lastResult.hasTargets()) return;
+
+        EstimatedRobotPose erp = photonPose.get();
+        Pose2d pvPose  = erp.estimatedPose.toPose2d();
+        Pose2d odoPose = drivebase.getSwerveDrive().getPose();
+
+        debugField.setRobotPose(pvPose);
+
+        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Raw X",        pvPose.getX());
+        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Raw Y",        pvPose.getY());
+        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Raw Rotation", pvPose.getRotation().getDegrees());
+        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Odo X Diff",   pvPose.getX() - odoPose.getX());
+        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Odo Y Diff",   pvPose.getY() - odoPose.getY());
+
+        System.out.println(String.format("[%s] PV Pose: X=%.3f Y=%.3f rot=%.1fdeg ts=%.3f tags=%d",
+            cameraLabel, pvPose.getX(), pvPose.getY(), pvPose.getRotation().getDegrees(),
+            erp.timestampSeconds, lastResult.getTargets().size()));
+        System.out.println(String.format("[%s] ODO Pose: X=%.3f Y=%.3f rot=%.1fdeg",
+            cameraLabel, odoPose.getX(), odoPose.getY(), odoPose.getRotation().getDegrees()));
+
+        double tagDist = lastResult.getBestTarget().getBestCameraToTarget().getTranslation().getNorm();
+        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Tag Distance", tagDist);
+
+        if (tagDist >= visionMaxTagDist) {
+            SmartDashboard.putBoolean("Vision/" + cameraLabel + "/ACCEPTED", false);
+            System.out.println("  [" + cameraLabel + "] Rejected - tag too far: " + tagDist);
+            return;
+        }
+
+        SmartDashboard.putBoolean("Vision/" + cameraLabel + "/ACCEPTED", true);
+
+        // -----------------------------------------------------------------
+        // Hub distance from vision pose, using alliance-correct hub center.
+        // -----------------------------------------------------------------
+        Translation2d hubCenter = getHubCenter();
+        double hubDistM  = pvPose.getTranslation().getDistance(hubCenter);
+        double hubDistIn = Units.metersToInches(hubDistM);
+        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Hub Distance (m)",  hubDistM);
+        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Hub Distance (in)", hubDistIn);
+
+        // -----------------------------------------------------------------
+        // Submit vision measurement using raw gyro heading for rotation.
+        // odoPose.getRotation() drifts with wheel odometry over time — if we
+        // lock vision to a drifted heading the X/Y estimate drifts too because
+        // the tag angle is wrong. The gyro is absolute and drift-free, so it
+        // gives vision a stable rotation anchor regardless of odometry error.
+        // Rotation std dev is 9999999 as an extra safety net on top of that.
+        // -----------------------------------------------------------------
+        Pose2d poseToSubmit = new Pose2d(
+            pvPose.getTranslation(),
+            drivebase.getSwerveDrive().getOdometryHeading()
+        );
+
+        drivebase.getSwerveDrive().addVisionMeasurement(
+            poseToSubmit,
+            erp.timestampSeconds,
+            // Lower X/Y std devs = trust vision more = vision actively corrects
+            // odometry drift instead of being diluted by it.
+            // Scale by tagDist so we trust close tags more than far ones.
+            edu.wpi.first.math.VecBuilder.fill(0.05 * tagDist, 0.05 * tagDist, 9999999)
+        );
+
+        timeAtLastSeen = Timer.getFPGATimestamp();
+
+        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Submitted X", poseToSubmit.getX());
+        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Submitted Y", poseToSubmit.getY());
+        SmartDashboard.putString("Vision/" + cameraLabel + "/Status",      "ACCEPTED");
+
+        System.out.println(String.format("  [%s] Vision fused X=%.3f Y=%.3f rot=%.1fdeg (gyro heading kept)",
+            cameraLabel, poseToSubmit.getX(), poseToSubmit.getY(), poseToSubmit.getRotation().getDegrees()));
     }
 
     public boolean hasRecentTarget() {

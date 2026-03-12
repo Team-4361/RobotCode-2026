@@ -7,19 +7,25 @@
         {
           "type": "path",
           "data": {
-            "pathName": "New Path"
+            "pathName": "centerToShoot"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "SetTurretAngle_62"
+            "name": "runIntake"
+          }
+        },
+        {
+          "type": "wait",
+          "data": {
+            "waitTime": 2.0
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "Shoot"
+            "name": "stopIntake"
           }
         }
       ]
