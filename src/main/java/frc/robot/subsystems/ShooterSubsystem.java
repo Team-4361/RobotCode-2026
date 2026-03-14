@@ -70,7 +70,7 @@ SmartMotorControllerConfig smcConfig = new SmartMotorControllerConfig(this)
 .withClosedLoopController(
     0.00016541, 0, 0,
     RPM.of(5000),
-    RotationsPerSecondPerSecond.of(2500)   // ← fix units here too
+    RotationsPerSecondPerSecond.of(2500)   // fix units here too
 )
 .withSimClosedLoopController(
     0.00016541, 0, 0,
@@ -114,9 +114,9 @@ private final TalonFX krakenMotor = new TalonFX(10);
 
     public ShooterSubsystem() {}
 
-    // ═════════════════════════════════════════════════════════════════════════
+    // 
     //  Hub-targeting commands  (PRIMARY API)
-    // ═════════════════════════════════════════════════════════════════════════
+    // 
 
     /**
      * Continuously recalculate and set the flywheel RPM to score from the
@@ -180,9 +180,9 @@ private final TalonFX krakenMotor = new TalonFX(10);
         });
     }
 
-    // ═════════════════════════════════════════════════════════════════════════
+    // 
     //  Basic controls (unchanged from original)
-    // ═════════════════════════════════════════════════════════════════════════
+    // 
 
     /** @return Current measured flywheel angular velocity. */
     public AngularVelocity getVelocity() {
@@ -210,9 +210,9 @@ private final TalonFX krakenMotor = new TalonFX(10);
     }
 
     private final VoltageOut m_voltReq = new VoltageOut(0.0);
-    // ═════════════════════════════════════════════════════════════════════════
+    // 
     //  System identification routines
-    // ═════════════════════════════════════════════════════════════════════════
+    // 
         private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
             new SysIdRoutine.Config(
                 null,
@@ -222,7 +222,7 @@ private final TalonFX krakenMotor = new TalonFX(10);
             ),
             new SysIdRoutine.Mechanism(
                 (volts) -> krakenMotor.setControl(m_voltReq.withOutput(volts.in(Volts))),
-                null,  // ← null because SignalLogger handles logging automatically
+                null,  // null because SignalLogger handles logging automatically
                 this
             )
         );
@@ -235,9 +235,7 @@ private final TalonFX krakenMotor = new TalonFX(10);
         return sysIdRoutine.dynamic(direction);
     }
 
-    // ═════════════════════════════════════════════════════════════════════════
     //  Ready-to-shoot check
-    // ═════════════════════════════════════════════════════════════════════════
 
     /**
      * Returns {@code true} when the flywheel has spun up to within
@@ -265,9 +263,7 @@ private final TalonFX krakenMotor = new TalonFX(10);
         return targetRPM;
     }
 
-    // ═════════════════════════════════════════════════════════════════════════
     //  Periodic
-    // ═════════════════════════════════════════════════════════════════════════
 
     @Override
     public void periodic() {
@@ -280,10 +276,8 @@ private final TalonFX krakenMotor = new TalonFX(10);
         shooter.simIterate();
     }
 
-    // ═════════════════════════════════════════════════════════════════════════
     //  Helpers
-    // ═════════════════════════════════════════════════════════════════════════
-
+ 
     /**
      * Reads the current alliance from the Driver Station.
      * Defaults to {@code false} (blue) if the alliance is unavailable.
