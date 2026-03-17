@@ -4,8 +4,13 @@
 
 package frc.robot;
 
+import java.io.File;
+import java.util.Optional;
+import java.util.Set;
+
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
+
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
@@ -14,6 +19,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -21,20 +27,13 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
-import frc.robot.Constants.OperatorConstants;
 import frc.robot.logics.Vision;
-import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.HopperSubsystem;
+import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
-
-import java.io.File;
-import java.util.Optional;
-import java.util.Set;
-
-import swervelib.SwerveInputStream;
 
 public class RobotContainer
 {
@@ -49,6 +48,8 @@ public class RobotContainer
     public static final Translation2d HUB_CENTER_RED =
         new Translation2d(FIELD_LENGTH_M - Units.inchesToMeters(182.11),
                           Units.inchesToMeters(158.84));
+
+        Field2d fullPose  = new Field2d();
 
     // ========== CONTROLLERS ==========
     final CommandJoystick joystickL     = new CommandJoystick(0);
@@ -123,8 +124,8 @@ private Pose2d getShootTarget() {
         SmartDashboard.putNumber("HOPPER_SPEED",  1.0);
         SmartDashboard.putNumber("FEEDER_SPEED",  0.9);
         SmartDashboard.putNumber("SHOOTER_SPEED", 0.77);
-        SmartDashboard.putNumber("INTAKE_SPEED",  0.7);
 
+        SmartDashboard.putNumber("INTAKE_SPEED",  0.7);
         shooter.setDefaultCommand(shooter.set(0));
         hopper.setDefaultCommand(hopper.stopMotorCommand());
         feeder.setDefaultCommand(feeder.stopMotorCommand());
@@ -150,7 +151,9 @@ private Pose2d getShootTarget() {
     // =========================================================================
     public void updateVision()
     {
-        vision.updateVision();
+
+        vision.updatePhotonVision();
+
     }
 
 

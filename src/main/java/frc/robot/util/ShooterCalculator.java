@@ -92,7 +92,9 @@ public class ShooterCalculator {
     /** Effective apex-height the trajectory must reach (m). */
     public static final double TARGET_HEIGHT_M    = HUB_LIP_HEIGHT_M + HUB_CLEARANCE_M;
 
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Ball properties
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /** Diameter  (m) — 5.91 in. */
     public static final double BALL_DIAMETER_M  = Units.inchesToMeters(5.91);
@@ -104,7 +106,9 @@ public class ShooterCalculator {
     /** Mass (kg) — midpoint of 0.448–0.500 lbs. */
     public static final double BALL_MASS_KG     = Units.lbsToKilograms(0.474);
 
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Aerodynamics
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /** Air density at sea level (kg/m³).  Adjust for venue altitude if needed. */
     public static final double AIR_DENSITY      = 1.225;
@@ -126,7 +130,9 @@ public class ShooterCalculator {
      */
     public static final double CL               = 0.22;
 
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Shooter / robot geometry  — TUNE THESE
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /** Fixed hood angle above horizontal (°). */
     public static final double LAUNCH_ANGLE_DEG = 35.1;
@@ -163,13 +169,17 @@ public class ShooterCalculator {
     /** Maximum allowable flywheel command (matches ShooterSubsystem soft limit). */
     public static final double MAX_RPM          = 6000.0;
 
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Numerical integration settings
+    // ═══════════════════════════════════════════════════════════════════════════
 
     private static final double DT              = 0.001;  // RK4 time step (s)
     private static final double MAX_FLIGHT_TIME = 3.0;    // abort integration after this (s)
     private static final double G               = 9.80665;
 
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Public API
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Calculate the required flywheel RPM to score into the hub.
@@ -247,7 +257,9 @@ public class ShooterCalculator {
         return robotPose.getTranslation().getDistance(hub);
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Binary search over exit speed
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Binary-search over the ball's flywheel-contributed exit speed (m/s) to
@@ -284,7 +296,9 @@ public class ShooterCalculator {
         return exitSpeedToRPM((lo + hi) * 0.5);
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
     //  RK4 trajectory simulation
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Simulate the ball trajectory and return whether it reaches
@@ -292,8 +306,8 @@ public class ShooterCalculator {
      *
      * <p><b>Forces modelled per time-step:</b>
      * <pre>
-     *   Drag:   F_d = -1/2p Cd A |v|^2  (opposing velocity)
-     *   Magnus: F_m = +1/2p CL A |v| (w(omega)·r/|v|)  (+Z for backspin moving in +X)
+     *   Drag:   F_d = −½ρ Cd A |v|²  (opposing velocity)
+     *   Magnus: F_m = +½ρ CL A |v| (ω·r/|v|)  (+Z for backspin moving in +X)
      *   Gravity: F_g = −m·g  (−Z)
      * </pre>
      *
@@ -366,8 +380,8 @@ public class ShooterCalculator {
      * Magnus (backspin on a +X moving ball) adds +Z (upward) acceleration.
      *
      * @param s          State [vx, vz, x, z].
-     * @param kDrag      Pre-computed drag scale (1/2pCdA/m).
-     * @param kMagnus    Pre-computed Magnus scale (1/2pClA/m).
+     * @param kDrag      Pre-computed drag scale (½ρCdA/m).
+     * @param kMagnus    Pre-computed Magnus scale (½ρClA/m).
      * @param omegaBall  Ball spin angular velocity (rad/s, backspin positive).
      * @return Derivatives [dvx/dt, dvz/dt, dx/dt, dz/dt].
      */
@@ -399,7 +413,9 @@ public class ShooterCalculator {
         return new double[]{ax, az, vx, vz};
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Conversion helpers
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Convert ball exit speed (m/s) → flywheel RPM.
@@ -425,7 +441,9 @@ public class ShooterCalculator {
         return surfaceSpeed * EFFICIENCY;
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Drag-free fallback
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Analytical no-drag, no-Magnus solution used as a fallback when the
@@ -448,7 +466,9 @@ public class ShooterCalculator {
         return exitSpeedToRPM(v0);
     }
 
+    // ═══════════════════════════════════════════════════════════════════════════
     //  Debug utilities
+    // ═══════════════════════════════════════════════════════════════════════════
 
     /**
      * Print a static distance-to-RPM lookup table to stdout.
