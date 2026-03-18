@@ -50,7 +50,7 @@ public class teleopController {
      * The minimum distance (meters) the robot keeps from the hub centre
      * while orbit mode is active.
      */
-    private static final double HUB_KEEP_DISTANCE_M = 2.0;
+    private static final double HUB_KEEP_DISTANCE_M = 3.3688;
 
     /** P-gain for snapping to HUB_KEEP_DISTANCE_M (m/s per metre of error). */
     private static final double HUB_SNAP_GAIN = 4.0;
@@ -198,7 +198,7 @@ public class teleopController {
         //                 = angle of (hub - robot) = angle of -unitAway
 
         Rotation2d desiredHeading = new Rotation2d(
-                Math.atan2(-unitAway.getY(), -unitAway.getX())
+                Math.atan2(-unitAway.getY(), -unitAway.getX()) + Math.PI/2
         );
 
         double headingError = MathUtil.angleModulus(

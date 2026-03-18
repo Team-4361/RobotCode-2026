@@ -27,6 +27,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import frc.robot.logics.SnapToHubCommand;
 import frc.robot.logics.Vision;
 import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.HopperSubsystem;
@@ -216,6 +217,7 @@ private Pose2d getShootTarget() {
     {
         NamedCommands.registerCommand("SetTurretAngle_0",   turret.setAngleCommand(0.0));
         NamedCommands.registerCommand("SetTurretAngle_0",   turret.setAngleCommand(62.5));
+        NamedCommands.registerCommand("SnapToHub",   new SnapToHubCommand());
 
         NamedCommands.registerCommand("SetTurretAngle_90",  turret.setAngleCommand(90.0));
         NamedCommands.registerCommand("SetTurretAngle_180", turret.setAngleCommand(180.0));

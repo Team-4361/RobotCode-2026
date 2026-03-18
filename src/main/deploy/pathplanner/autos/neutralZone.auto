@@ -50,6 +50,18 @@
         {
           "type": "named",
           "data": {
+            "name": "SetTurretAngle_-20"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "SnapToHub"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
             "name": "Shoot"
           }
         }
