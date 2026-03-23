@@ -161,7 +161,7 @@ public class Vision {
 
             if (photonPose.isPresent()) {
                 photonField.setRobotPose(photonPose.get().estimatedPose.toPose2d());
-
+                //Calculates the best distance away from the Hub
                 double bestTagDist = result.getBestTarget()
                     .bestCameraToTarget
                     .getTranslation()
