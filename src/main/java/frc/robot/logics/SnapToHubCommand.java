@@ -108,6 +108,7 @@ public class SnapToHubCommand extends Command {
         Pose2d pose       = RobotContainer.drivebase.getPose();
         Translation2d robotPos = pose.getTranslation();
 
+        //Determines the alliance
         Optional<Alliance> alliance = DriverStation.getAlliance();
         boolean isRed = alliance.isPresent() && alliance.get() == Alliance.Red;
         Translation2d hub = isRed

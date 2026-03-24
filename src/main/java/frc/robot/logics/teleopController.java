@@ -206,7 +206,7 @@ public class teleopController {
         );
 
         rV = MathUtil.clamp(
-                HEADING_P * headingError,
+                 HEADING_P * headingError,
                 -HEADING_MAX_RAD_S,
                  HEADING_MAX_RAD_S
         );
