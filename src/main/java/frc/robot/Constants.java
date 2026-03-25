@@ -27,25 +27,9 @@ public final class Constants
   public static final double MAX_SPEED  = Units.feetToMeters(14.5);
   // Maximum speed of the robot in meters per second, used to limit acceleration.
 
-  public static final class climberConstants {
-    public static final int RSPARKMAX_ID = 6; //Declares the SparkMax used for the climber
-    public static final int LSPARKMAX_ID = 7; //Declares the SparkMax used for the climber
-    public static final int WINCH_ID = 8;
-    //Climber PID Constants
-    public static final double kP = 0.05;  //Tested PID Values from LinearActuator code 
-    public static final double kI = 0.0;  //PID Stands for Proportional-Integral-Derivative
-    public static final double kD = 0.002; 
-    public static final double POSITION_TOLERANCE = 0.001;
-    //public static final double kIz = 0.0;
-    //public static final double kFF = 0.0;
-    public static final double kMaxOutput = 1.0;
-    public static final double kMinOutput = -1.0; 
-    public static final double climberZero = 0.0; //Declares the zero for the climber
-    public static final double climberSpeed = 0.25; //Linear Actuator Speed; Mess around/test later
-    public static final double winchSpeed = 0.5; //Winch Motor Speed
-  }
-
-  
+//    public static final int RSPARKMAX_ID = 6; //OLD ID for climber
+  //  public static final int LSPARKMAX_ID = 7; //OLD ID for Climer 67 67
+    //public static final int WINCH_ID = 8; //OLD ID for Climber 67
 
 //  public static final class AutonConstants
 //  {
