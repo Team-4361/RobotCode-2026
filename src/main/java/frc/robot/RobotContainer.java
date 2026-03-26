@@ -15,6 +15,7 @@ import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
@@ -35,6 +36,7 @@ import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
+import frc.robot.util.FuelSim;
 
 public class RobotContainer
 {
@@ -108,6 +110,7 @@ private Pose2d getShootTarget() {
     private final FeederSubsystem  feeder  = new FeederSubsystem();
     private final TurretSubsystem  turret  = new TurretSubsystem(drivebase);
     private final ShooterSubsystem shooter = new ShooterSubsystem();
+    public FuelSim fuelSim;
 
     private static final double TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC = 90.0;
 
@@ -137,6 +140,9 @@ private Pose2d getShootTarget() {
 
         autoChooser = AutoBuilder.buildAutoChooser("New Auto");
         SmartDashboard.putData("Auto Chooser", autoChooser);
+                if (Robot.isSimulation()) {
+            configureFuelSim();
+        }
 
         // FIX: Use RobotModeTriggers.autonomous() unconditionally.
         // The old null-check on autoChooser.getSelected() was unreliable —
@@ -146,6 +152,49 @@ private Pose2d getShootTarget() {
             Commands.runOnce(this::zeroGyroAndReseed)
         );
     }
+    //SIMULATION//
+
+    private void configureFuelSim() {
+    fuelSim = new FuelSim("fuel");
+    fuelSim.spawnStartingFuel();
+
+    // Convert robot-relative speeds to field-relative using current heading
+    fuelSim.registerRobot(
+        Units.inchesToMeters(31), // width  (bumper to bumper)
+        Units.inchesToMeters(31), // length (bumper to bumper)
+        Units.inchesToMeters(5.1), // bumper height — adjust if needed
+        drivebase::getPose,
+        () -> {
+            ChassisSpeeds robotSpeeds = drivebase.getRobotVelocity();
+            Rotation2d heading = drivebase.getPose().getRotation();
+            return ChassisSpeeds.fromRobotRelativeSpeeds(robotSpeeds, heading);
+        }
+    );
+
+    // Intake bounding box — robot-centric, roughly front-right side
+    // Adjust minX/maxX/minY/maxY to match your actual intake geometry
+    fuelSim.registerIntake(
+    Units.inchesToMeters(-16.5),  // minX — rear bumper edge
+    Units.inchesToMeters(-8),   // maxX — a few inches in from the back
+    Units.inchesToMeters(-11),  // minY — right side
+    Units.inchesToMeters(11),   // maxY — left side
+               () -> System.out.println("FUEL INTAKED!") // debug callback                    // optional callback e.g. hopper.increment()
+    );
+
+    fuelSim.setSubticks(5);
+    fuelSim.start();
+
+    // SmartDashboard reset button
+    SmartDashboard.putData("Reset Fuel",
+        Commands.runOnce(() -> {
+            fuelSim.clearFuel();
+            fuelSim.spawnStartingFuel();
+        }).ignoringDisable(true).withName("Reset Fuel")
+    );
+}
+
+
+
 
     // =========================================================================
     // VISION UPDATE — call this from Robot.robotPeriodic() every loop
@@ -222,7 +271,7 @@ private Pose2d getShootTarget() {
         NamedCommands.registerCommand("SetTurretAngle_90",  turret.setAngleCommand(90.0));
         NamedCommands.registerCommand("SetTurretAngle_180", turret.setAngleCommand(180.0));
         NamedCommands.registerCommand("SetTurretAngle_-90", turret.setAngleCommand(-90.0));
-                NamedCommands.registerCommand("SetTurretAngle_-20", turret.setAngleCommand(-20.0));
+        NamedCommands.registerCommand("SetTurretAngle_-20", turret.setAngleCommand(-20.0));
 
         NamedCommands.registerCommand("TurretAimForward",   turret.moveToAngleCommand(0.0).withTimeout(3.0));
         NamedCommands.registerCommand("TurretAimHub",       turret.aimAtTargetCommand(getHubTarget()).withTimeout(3.0));

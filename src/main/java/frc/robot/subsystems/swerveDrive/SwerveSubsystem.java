@@ -481,6 +481,11 @@ public class SwerveSubsystem extends SubsystemBase
   public void resetOdometry(Pose2d initialHolonomicPose)
   {
     swerveDrive.resetOdometry(initialHolonomicPose);
+    if(isRedAlliance()) {
+      swerveDrive.setGyro(new Rotation3d(0, 0, initialHolonomicPose.getRotation().getRadians() + Math.PI));
+    } else {
+      swerveDrive.setGyro(new Rotation3d(initialHolonomicPose.getRotation()));
+    }
   }
 
   /**
