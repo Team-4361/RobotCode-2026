@@ -1,8 +1,19 @@
 package frc.robot.logics;
 
-import java.util.List;
+import edu.wpi.first.apriltag.AprilTagFieldLayout;
+import edu.wpi.first.apriltag.AprilTagFields;
+import edu.wpi.first.math.geometry.Rotation3d;
+import edu.wpi.first.math.geometry.Transform3d;
+import edu.wpi.first.math.geometry.Translation3d;
+import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 import java.util.Optional;
-
+import org.photonvision.simulation.SimCameraProperties;
+import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import frc.robot.Robot;
 import org.photonvision.EstimatedRobotPose;
 import org.photonvision.PhotonCamera;
 import org.photonvision.PhotonPoseEstimator;
@@ -10,52 +21,42 @@ import org.photonvision.PhotonPoseEstimator.PoseStrategy;
 import org.photonvision.simulation.PhotonCameraSim;
 import org.photonvision.simulation.SimCameraProperties;
 import org.photonvision.simulation.VisionSystemSim;
-import org.photonvision.targeting.PhotonPipelineResult;
-
-import edu.wpi.first.apriltag.AprilTagFieldLayout;
-import edu.wpi.first.apriltag.AprilTagFields;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Rotation3d;
-import edu.wpi.first.math.geometry.Transform3d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.math.geometry.Translation3d;
-import edu.wpi.first.math.util.Units;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
-import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.smartdashboard.Field2d;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import frc.robot.Robot;
-import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 
 public class Vision {
 
+    // --- Drivebase ---
     private final SwerveSubsystem drivebase;
 
-    PhotonCamera frontCameraLeft  = new PhotonCamera("frontCameraLeft");
-    PhotonCamera frontCameraRight = new PhotonCamera("frontCameraRight");
-    // ========== FIELD CONSTANTS ==========
-    private static final double FIELD_LENGTH_M = Units.inchesToMeters(651.25);
-    private static final double FIELD_WIDTH_M = Units.inchesToMeters(317.69);
+    // --- Feature flags ---
+    boolean updateHeadingWithVision = true;
+    boolean useFrontLeft  = true;
+    boolean useFrontRight = true;
 
-    public static final Translation2d HUB_CENTER_BLUE =
-        new Translation2d(Units.inchesToMeters(182.11), Units.inchesToMeters(158.84));
+    // --- AprilTag field layout ---
+    AprilTagFieldLayout aprilTagFieldLayout =
+        AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
-    public static final Translation2d HUB_CENTER_RED =
-        new Translation2d(FIELD_LENGTH_M - Units.inchesToMeters(182.11),
-                          Units.inchesToMeters(158.84));
+    // --- Cameras ---
+    PhotonCamera frontLeftCam  = new PhotonCamera("frontLeftCam");
+    PhotonCamera frontRightCam = new PhotonCamera("frontRightCam");
 
-    Transform3d frontCameraLeftTransform = new Transform3d(
+    // Timestamp of the last AprilTag observation
+    public double timeATLastSeen = 0.0;
+
+    // Max distance to accept a tag pose measurement (metres)
+    public double visionMaxATDist = 10.0;
+
+    // --- Camera-to-robot transforms ---
+    Transform3d frontLeftCamTransform = new Transform3d(
         new Translation3d(
             Units.inchesToMeters(13.5),
             Units.inchesToMeters(-8.75),
-            Units.inchesToMeters(19)
+            Units.inchesToMeters(19.0)
         ),
         new Rotation3d(0, Units.degreesToRadians(-26), Units.degreesToRadians(0))
     );
 
-    Transform3d frontCameraRightTransform = new Transform3d(
+    Transform3d frontRightCamTransform = new Transform3d(
         new Translation3d(
             Units.inchesToMeters(13.5),
             Units.inchesToMeters(8.75),
@@ -64,181 +65,123 @@ public class Vision {
         new Rotation3d(0, Units.degreesToRadians(-26), Units.degreesToRadians(0))
     );
 
-    AprilTagFieldLayout fieldLayout = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
+    // --- Pose estimators ---
+    PhotonPoseEstimator frontLeftPoseEstimator = new PhotonPoseEstimator(
+        aprilTagFieldLayout,
+        PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+        frontLeftCamTransform
+    );
 
-    PhotonPoseEstimator frontRightEstimator = new PhotonPoseEstimator(
-        fieldLayout, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, frontCameraRightTransform);
+    PhotonPoseEstimator frontRightPoseEstimator = new PhotonPoseEstimator(
+        aprilTagFieldLayout,
+        PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+        frontRightCamTransform
+    );
 
-    PhotonPoseEstimator frontLeftEstimator = new PhotonPoseEstimator(
-        fieldLayout, PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR, frontCameraLeftTransform);
+    // --- SmartDashboard Field2d views ---
+    Field2d photonField_frontLeft  = new Field2d();
+    Field2d photonField_frontRight = new Field2d();
 
-    public double visionMaxTagDist = 5.5;
-    public double timeAtLastSeen   = 0.0;
+    // --- Simulation ---
+    VisionSystemSim visionSim;
+    PhotonCameraSim frontLeftCamSim;
+    PhotonCameraSim frontRightCamSim;
 
-    Field2d frontCameraRightDebugField = new Field2d();
-    Field2d frontCameraLeftDebugField  = new Field2d();
-    Field2d fusedOdometryField         = new Field2d();
+    public Vision(SwerveSubsystem drivebase) {
+        this.drivebase = drivebase;
 
-    private VisionSystemSim visionSim;
-    private PhotonCameraSim frontCameraSim;
-    private PhotonCameraSim backCameraSim;
+        frontLeftPoseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
+        frontRightPoseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
 
-    public Vision(SwerveSubsystem drivebaseIn) {
-        this.drivebase = drivebaseIn;
-        SmartDashboard.putData("Vision/FrontCamLeft Raw Pose",  frontCameraLeftDebugField);
-        SmartDashboard.putData("Vision/FrontCamRight Raw Pose", frontCameraRightDebugField);
-        SmartDashboard.putData("Vision/Fused Odometry Pose",    fusedOdometryField);
-        if (Robot.isSimulation()) setupSimulation();
+        SmartDashboard.putData("PhotonPose FrontLeft",  photonField_frontLeft);
+        SmartDashboard.putData("PhotonPose FrontRight", photonField_frontRight);
+
+        if (Robot.isSimulation()) {
+            setupSimulation();
+        }
     }
 
     private void setupSimulation() {
         visionSim = new VisionSystemSim("main");
-        visionSim.addAprilTags(fieldLayout);
-        SimCameraProperties cameraProps = new SimCameraProperties();
-        cameraProps.setCalibration(1280, 800, Rotation2d.fromDegrees(70));
-        cameraProps.setCalibError(0.20, 0.06);
-        cameraProps.setFPS(45);
-        cameraProps.setAvgLatencyMs(35);
-        cameraProps.setLatencyStdDevMs(8);
-        frontCameraSim = new PhotonCameraSim(frontCameraLeft,  cameraProps);
-        backCameraSim  = new PhotonCameraSim(frontCameraRight, cameraProps);
-        visionSim.addCamera(frontCameraSim, frontCameraLeftTransform);
-        visionSim.addCamera(backCameraSim,  frontCameraRightTransform);
-        frontCameraSim.enableDrawWireframe(true);
-        backCameraSim.enableDrawWireframe(true);
+        visionSim.addAprilTags(aprilTagFieldLayout);
+
+        // OV9281 properties at 1280x800
+        // The OV9281 is a global-shutter monochrome sensor, so:
+        //   - Very low latency (~5ms exposure)
+        //   - Minimal noise
+        //   - No rolling shutter distortion
+        SimCameraProperties ov9281Props = new SimCameraProperties();
+        ov9281Props.setCalibration(1280, 800, edu.wpi.first.math.geometry.Rotation2d.fromDegrees(79.0));
+        // OV9281 has very low noise due to global shutter — keep error tight
+        ov9281Props.setCalibError(0.8, 0.1); // 0.8px reprojection error, 0.1px stdev
+        // ~55 fps average across your 50-60fps range
+        ov9281Props.setFPS(55);
+        // Global shutter = very short exposure, minimal motion blur
+        ov9281Props.setAvgLatencyMs(30);   // typical PhotonVision pipeline latency on Orange Pi
+        ov9281Props.setLatencyStdDevMs(3); // low variance due to consistent pipeline timing
+
+        frontLeftCamSim  = new PhotonCameraSim(frontLeftCam,  ov9281Props);
+        frontRightCamSim = new PhotonCameraSim(frontRightCam, ov9281Props);
+
+        // Enable the wireframe target view in the sim GUI so you can
+        // visually verify tag detection in the camera streams
+        frontLeftCamSim.enableDrawWireframe(true);
+        frontRightCamSim.enableDrawWireframe(true);
+
+        visionSim.addCamera(frontLeftCamSim,  frontLeftCamTransform);
+        visionSim.addCamera(frontRightCamSim, frontRightCamTransform);
     }
 
-    /**
-     * Returns the hub center for the current alliance.
-     * Falls back to blue if the alliance is not yet determined.
-     */
-    public Translation2d getHubCenter() {
-        Optional<Alliance> alliance = DriverStation.getAlliance();
-        if (alliance.isPresent() && alliance.get() == Alliance.Red) {
-            return HUB_CENTER_RED;
+    public void updatePhotonVision() {
+        if (Robot.isSimulation()) {
+            // Feed the sim drivetrain pose into the vision sim so cameras
+            // see tags from the correct position each loop
+            drivebase.getSwerveDrive().getSimulationDriveTrainPose().ifPresent(
+                simPose -> visionSim.update(simPose)
+            );
         }
-        return HUB_CENTER_BLUE;
+
+        integrateCamera(useFrontLeft,  frontLeftCam,  frontLeftPoseEstimator,
+                        photonField_frontLeft,  visionMaxATDist);
+        integrateCamera(useFrontRight, frontRightCam, frontRightPoseEstimator,
+                        photonField_frontRight, visionMaxATDist);
     }
 
-    public void updateVision() {
-        if (Robot.isSimulation() && visionSim != null)
-            visionSim.update(drivebase.getSwerveDrive().getPose());
+    public void integrateCamera(
+            boolean useCamera,
+            PhotonCamera camera,
+            PhotonPoseEstimator estimator,
+            Field2d photonField,
+            double maxDistance) {
 
-        integrateCamera(frontCameraRight, frontRightEstimator, frontCameraRightDebugField, "FrontRight");
-        integrateCamera(frontCameraLeft,  frontLeftEstimator,  frontCameraLeftDebugField,  "FrontLeft");
+        for (var result : camera.getAllUnreadResults()) {
+            if (!result.hasTargets()) continue;
 
-        fusedOdometryField.setRobotPose(drivebase.getSwerveDrive().swerveDrivePoseEstimator.getEstimatedPosition());
+            Optional<EstimatedRobotPose> photonPose = estimator.update(result);
 
-        // Publish alliance and hub center for dashboard visibility
-        Optional<Alliance> alliance = DriverStation.getAlliance();
-        SmartDashboard.putString("Vision/Alliance", alliance.map(Enum::name).orElse("UNKNOWN"));
-        Translation2d hub = getHubCenter();
-        SmartDashboard.putNumber("Vision/Hub Center X (m)", hub.getX());
-        SmartDashboard.putNumber("Vision/Hub Center Y (m)", hub.getY());
+            if (photonPose.isPresent()) {
+                photonField.setRobotPose(photonPose.get().estimatedPose.toPose2d());
 
-        SmartDashboard.putNumber("Vision/Time Since Last Tag", Timer.getFPGATimestamp() - timeAtLastSeen);
-        SmartDashboard.putBoolean("Vision/Recently Saw Tag",   hasRecentTarget());
-    }
+                double bestTagDist = result.getBestTarget()
+                    .bestCameraToTarget
+                    .getTranslation()
+                    .getNorm();
 
-    private void integrateCamera(PhotonCamera camera, PhotonPoseEstimator estimator,
-                                  Field2d debugField, String cameraLabel) {
+                double poseAmbiguity = result.getBestTarget().getPoseAmbiguity();
 
-        List<PhotonPipelineResult> cameraPipeline = camera.getAllUnreadResults();
+                SmartDashboard.putNumber(camera.getName() + " BestTagDist", bestTagDist);
+                SmartDashboard.putNumber(camera.getName() + " Ambiguity",   poseAmbiguity);
 
-        // Update the estimator with every result so its internal state stays
-        // current, but only submit a vision measurement for the last result.
-        // Submitting multiple measurements per loop tick hammers the Kalman
-        // filter and causes visible drive stutter.
-        Optional<EstimatedRobotPose> photonPose = Optional.empty();
-        for (int i = 0; i < cameraPipeline.size(); i++) {
-            PhotonPipelineResult result = cameraPipeline.get(i);
-
-            // Skip if no targets
-            if (!result.hasTargets()) {
-                continue;
+                if (useCamera && bestTagDist < maxDistance && poseAmbiguity < 0.15) {
+                    if (updateHeadingWithVision) {
+                        drivebase.getSwerveDrive().addVisionMeasurement(
+                            photonPose.get().estimatedPose.toPose2d(),
+                            photonPose.get().timestampSeconds
+                        );
+                        timeATLastSeen = Timer.getFPGATimestamp();
+                    }
+                }
             }
-
-            photonPose = estimator.update(result);
         }
-
-        // Nothing usable in this batch — bail out
-        if (photonPose.isEmpty()) return;
-
-        // Use the last result for tag distance check and dashboard/submission
-        PhotonPipelineResult lastResult = cameraPipeline.get(cameraPipeline.size() - 1);
-        if (!lastResult.hasTargets()) return;
-
-        EstimatedRobotPose erp = photonPose.get();
-        Pose2d pvPose  = erp.estimatedPose.toPose2d();
-        Pose2d odoPose = drivebase.getSwerveDrive().getPose();
-
-        debugField.setRobotPose(pvPose);
-
-        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Raw X",        pvPose.getX());
-        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Raw Y",        pvPose.getY());
-        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Raw Rotation", pvPose.getRotation().getDegrees());
-        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Odo X Diff",   pvPose.getX() - odoPose.getX());
-        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Odo Y Diff",   pvPose.getY() - odoPose.getY());
-
-        System.out.println(String.format("[%s] PV Pose: X=%.3f Y=%.3f rot=%.1fdeg ts=%.3f tags=%d",
-            cameraLabel, pvPose.getX(), pvPose.getY(), pvPose.getRotation().getDegrees(),
-            erp.timestampSeconds, lastResult.getTargets().size()));
-        System.out.println(String.format("[%s] ODO Pose: X=%.3f Y=%.3f rot=%.1fdeg",
-            cameraLabel, odoPose.getX(), odoPose.getY(), odoPose.getRotation().getDegrees()));
-
-        double tagDist = lastResult.getBestTarget().getBestCameraToTarget().getTranslation().getNorm();
-        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Tag Distance", tagDist);
-
-        if (tagDist >= visionMaxTagDist) {
-            SmartDashboard.putBoolean("Vision/" + cameraLabel + "/ACCEPTED", false);
-            System.out.println("  [" + cameraLabel + "] Rejected - tag too far: " + tagDist);
-            return;
-        }
-
-        SmartDashboard.putBoolean("Vision/" + cameraLabel + "/ACCEPTED", true);
-
-        // -----------------------------------------------------------------
-        // Hub distance from vision pose, using alliance-correct hub center.
-        // -----------------------------------------------------------------
-        Translation2d hubCenter = getHubCenter();
-        double hubDistM  = pvPose.getTranslation().getDistance(hubCenter);
-        double hubDistIn = Units.metersToInches(hubDistM);
-        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Hub Distance (m)",  hubDistM);
-        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Hub Distance (in)", hubDistIn);
-
-        // -----------------------------------------------------------------
-        // Submit vision measurement using raw gyro heading for rotation.
-        // odoPose.getRotation() drifts with wheel odometry over time — if we
-        // lock vision to a drifted heading the X/Y estimate drifts too because
-        // the tag angle is wrong. The gyro is absolute and drift-free, so it
-        // gives vision a stable rotation anchor regardless of odometry error.
-        // Rotation std dev is 9999999 as an extra safety net on top of that.
-        // -----------------------------------------------------------------
-        Pose2d poseToSubmit = new Pose2d(
-            pvPose.getTranslation(),
-            drivebase.getSwerveDrive().getOdometryHeading()
-        );
-
-        drivebase.getSwerveDrive().addVisionMeasurement(
-            poseToSubmit,
-            erp.timestampSeconds,
-            // Lower X/Y std devs = trust vision more = vision actively corrects
-            // odometry drift instead of being diluted by it.
-            // Scale by tagDist so we trust close tags more than far ones.
-            edu.wpi.first.math.VecBuilder.fill(0.05 * tagDist, 0.05 * tagDist, 9999999)
-        );
-
-        timeAtLastSeen = Timer.getFPGATimestamp();
-
-        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Submitted X", poseToSubmit.getX());
-        SmartDashboard.putNumber("Vision/" + cameraLabel + "/Submitted Y", poseToSubmit.getY());
-        SmartDashboard.putString("Vision/" + cameraLabel + "/Status",      "ACCEPTED");
-
-        System.out.println(String.format("  [%s] Vision fused X=%.3f Y=%.3f rot=%.1fdeg (gyro heading kept)",
-            cameraLabel, poseToSubmit.getX(), poseToSubmit.getY(), poseToSubmit.getRotation().getDegrees()));
-    }
-
-    public boolean hasRecentTarget() {
-        return (Timer.getFPGATimestamp() - timeAtLastSeen) < 0.5;
     }
 }
