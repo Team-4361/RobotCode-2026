@@ -4,8 +4,7 @@
 
 package frc.robot;
 
-import com.revrobotics.spark.SparkMax;
-
+import com.pathplanner.lib.config.PIDConstants;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
 import swervelib.math.Matter;
@@ -27,16 +26,13 @@ public final class Constants
   public static final double MAX_SPEED  = Units.feetToMeters(14.5);
   // Maximum speed of the robot in meters per second, used to limit acceleration.
 
-//    public static final int RSPARKMAX_ID = 6; //OLD ID for climber
-  //  public static final int LSPARKMAX_ID = 7; //OLD ID for Climer 67 67
-    //public static final int WINCH_ID = 8; //OLD ID for Climber 67
 
-//  public static final class AutonConstants
-//  {
-//
-//    public static final PIDConstants TRANSLATION_PID = new PIDConstants(0.7, 0, 0);
-//    public static final PIDConstants ANGLE_PID       = new PIDConstants(0.4, 0, 0.01);
-//  }
+  public static final class AutonConstants
+  {
+
+    public static final PIDConstants TRANSLATION_PID = new PIDConstants(0.7, 0, 0);
+    public static final PIDConstants ANGLE_PID       = new PIDConstants(0.4, 0, 0.01);
+  }
 
   public static final class DrivebaseConstants
   {
@@ -57,6 +53,7 @@ public final class Constants
 
   public static class HopperConstants
   {
+    public static final int HOPPERVORTEX = 0;
     public static final double FEED_SPEED = 0.5;
   }
 
@@ -64,11 +61,15 @@ public final class Constants
   {
     //intake neo
     public static final int INTAKENEO = 0;
+    public static final int INTAKEKRAKEN = 0;
     public static final double speed = 0.4;
   }
 
   public static class ShooterConstants
   {
     public static final int StatorCurrentLimit = 40;
+    public static final int LEFTSHOOTKRAKEN = 0;
+    public static final int RIGHTSHOOTKRAKEN = 0;
+    public static final int NEOVORTEXID = 0;
   }
 }
