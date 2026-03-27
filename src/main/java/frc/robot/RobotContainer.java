@@ -4,16 +4,23 @@
 
 package frc.robot;
 
+import java.io.File;
+import java.util.Optional;
+import java.util.Set;
+
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
+
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
 import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.math.kinematics.ChassisSpeeds;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -21,20 +28,15 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
-import frc.robot.Constants.OperatorConstants;
+import frc.robot.logics.SnapToHubCommand;
 import frc.robot.logics.Vision;
-import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.HopperSubsystem;
+import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
-
-import java.io.File;
-import java.util.Optional;
-import java.util.Set;
-
-import swervelib.SwerveInputStream;
+import frc.robot.util.FuelSim;
 
 public class RobotContainer
 {
@@ -49,6 +51,8 @@ public class RobotContainer
     public static final Translation2d HUB_CENTER_RED =
         new Translation2d(FIELD_LENGTH_M - Units.inchesToMeters(182.11),
                           Units.inchesToMeters(158.84));
+
+        Field2d fullPose  = new Field2d();
 
     // ========== CONTROLLERS ==========
     final CommandJoystick joystickL     = new CommandJoystick(0);
@@ -101,10 +105,12 @@ private Pose2d getShootTarget() {
 // );
 
 
+    private final IntakeSubsystem  intake  = new IntakeSubsystem();
     private final HopperSubsystem  hopper  = new HopperSubsystem();
     private final FeederSubsystem  feeder  = new FeederSubsystem();
     private final TurretSubsystem  turret  = new TurretSubsystem(drivebase);
     private final ShooterSubsystem shooter = new ShooterSubsystem();
+    public FuelSim fuelSim;
 
     private static final double TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC = 90.0;
 
@@ -122,8 +128,8 @@ private Pose2d getShootTarget() {
         SmartDashboard.putNumber("HOPPER_SPEED",  1.0);
         SmartDashboard.putNumber("FEEDER_SPEED",  0.9);
         SmartDashboard.putNumber("SHOOTER_SPEED", 0.77);
-        SmartDashboard.putNumber("INTAKE_SPEED",  0.7);
 
+        SmartDashboard.putNumber("INTAKE_SPEED",  0.7);
         shooter.setDefaultCommand(shooter.set(0));
         hopper.setDefaultCommand(hopper.stopMotorCommand());
         feeder.setDefaultCommand(feeder.stopMotorCommand());
@@ -134,6 +140,9 @@ private Pose2d getShootTarget() {
 
         autoChooser = AutoBuilder.buildAutoChooser("New Auto");
         SmartDashboard.putData("Auto Chooser", autoChooser);
+                if (Robot.isSimulation()) {
+            configureFuelSim();
+        }
 
         // FIX: Use RobotModeTriggers.autonomous() unconditionally.
         // The old null-check on autoChooser.getSelected() was unreliable —
@@ -143,13 +152,58 @@ private Pose2d getShootTarget() {
             Commands.runOnce(this::zeroGyroAndReseed)
         );
     }
+    //SIMULATION//
+
+    private void configureFuelSim() {
+    fuelSim = new FuelSim("fuel");
+    fuelSim.spawnStartingFuel();
+
+    // Convert robot-relative speeds to field-relative using current heading
+    fuelSim.registerRobot(
+        Units.inchesToMeters(31), // width  (bumper to bumper)
+        Units.inchesToMeters(31), // length (bumper to bumper)
+        Units.inchesToMeters(5.1), // bumper height — adjust if needed
+        drivebase::getPose,
+        () -> {
+            ChassisSpeeds robotSpeeds = drivebase.getRobotVelocity();
+            Rotation2d heading = drivebase.getPose().getRotation();
+            return ChassisSpeeds.fromRobotRelativeSpeeds(robotSpeeds, heading);
+        }
+    );
+
+    // Intake bounding box — robot-centric, roughly front-right side
+    // Adjust minX/maxX/minY/maxY to match your actual intake geometry
+    fuelSim.registerIntake(
+    Units.inchesToMeters(-16.5),  // minX — rear bumper edge
+    Units.inchesToMeters(-8),   // maxX — a few inches in from the back
+    Units.inchesToMeters(-11),  // minY — right side
+    Units.inchesToMeters(11),   // maxY — left side
+               () -> System.out.println("FUEL INTAKED!") // debug callback                    // optional callback e.g. hopper.increment()
+    );
+
+    fuelSim.setSubticks(5);
+    fuelSim.start();
+
+    // SmartDashboard reset button
+    SmartDashboard.putData("Reset Fuel",
+        Commands.runOnce(() -> {
+            fuelSim.clearFuel();
+            fuelSim.spawnStartingFuel();
+        }).ignoringDisable(true).withName("Reset Fuel")
+    );
+}
+
+
+
 
     // =========================================================================
     // VISION UPDATE — call this from Robot.robotPeriodic() every loop
     // =========================================================================
     public void updateVision()
     {
+
         vision.updatePhotonVision();
+
     }
 
 
@@ -212,16 +266,20 @@ private Pose2d getShootTarget() {
     {
         NamedCommands.registerCommand("SetTurretAngle_0",   turret.setAngleCommand(0.0));
         NamedCommands.registerCommand("SetTurretAngle_0",   turret.setAngleCommand(62.5));
+        NamedCommands.registerCommand("SnapToHub",   new SnapToHubCommand());
 
         NamedCommands.registerCommand("SetTurretAngle_90",  turret.setAngleCommand(90.0));
         NamedCommands.registerCommand("SetTurretAngle_180", turret.setAngleCommand(180.0));
         NamedCommands.registerCommand("SetTurretAngle_-90", turret.setAngleCommand(-90.0));
-                NamedCommands.registerCommand("SetTurretAngle_-20", turret.setAngleCommand(-20.0));
+        NamedCommands.registerCommand("SetTurretAngle_-20", turret.setAngleCommand(-20.0));
 
         NamedCommands.registerCommand("TurretAimForward",   turret.moveToAngleCommand(0.0).withTimeout(3.0));
         NamedCommands.registerCommand("TurretAimHub",       turret.aimAtTargetCommand(getHubTarget()).withTimeout(3.0));
 
+        NamedCommands.registerCommand("runIntake",   intake.runMotorCommand(1.0));
+        NamedCommands.registerCommand("stopIntake",  intake.stopMotorCommand());
 
+        NamedCommands.registerCommand("ShooterSpinUp", shooter.aimAtHubContinuous(drivebase));
         NamedCommands.registerCommand("ShooterStop",   Commands.runOnce(() -> shooter.set(0), shooter));
         NamedCommands.registerCommand("Shoot",         shootWithFeedCommandAuto(0.77, 6.7));
         NamedCommands.registerCommand("ShootCenter",         shootWithFeedCommandAuto(0.73, 8.7));
@@ -287,7 +345,9 @@ private Pose2d getShootTarget() {
 
 
             // ── Operator: Intake ─────────────────────────────────────────────────
- 
+            operatorXbox.a().whileTrue(intake.runMotorButBetter(1.0));
+            operatorXbox.y().whileTrue(intake.runMotorButBetter(-1.0));
+
             // ── Operator: Turret ─────────────────────────────────────────────────
             operatorXbox.leftBumper().toggleOnTrue(
                 turret.fieldAngleLockCommand().withName("TurretFieldLock"));

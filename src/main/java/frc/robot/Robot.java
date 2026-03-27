@@ -213,5 +213,8 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
   @Override
   public void simulationPeriodic()
   {
+
+            m_robotContainer.fuelSim.updateSim();
+
   }
 }

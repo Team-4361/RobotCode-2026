@@ -9,18 +9,6 @@
           "data": {
             "pathName": "New Path"
           }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "SetTurretAngle_62"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "Shoot"
-          }
         }
       ]
     }
