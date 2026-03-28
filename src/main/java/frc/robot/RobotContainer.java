@@ -34,7 +34,6 @@ import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.HopperSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
-import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 import frc.robot.util.FuelSim;
 
@@ -108,7 +107,6 @@ private Pose2d getShootTarget() {
     private final IntakeSubsystem  intake  = new IntakeSubsystem();
     private final HopperSubsystem  hopper  = new HopperSubsystem();
     private final FeederSubsystem  feeder  = new FeederSubsystem();
-    private final TurretSubsystem  turret  = new TurretSubsystem(drivebase);
     private final ShooterSubsystem shooter = new ShooterSubsystem();
     public FuelSim fuelSim;
 
@@ -264,17 +262,9 @@ private Pose2d getShootTarget() {
 
     private void registerNamedCommands()
     {
-        NamedCommands.registerCommand("SetTurretAngle_0",   turret.setAngleCommand(0.0));
-        NamedCommands.registerCommand("SetTurretAngle_0",   turret.setAngleCommand(62.5));
         NamedCommands.registerCommand("SnapToHub",   new SnapToHubCommand());
 
-        NamedCommands.registerCommand("SetTurretAngle_90",  turret.setAngleCommand(90.0));
-        NamedCommands.registerCommand("SetTurretAngle_180", turret.setAngleCommand(180.0));
-        NamedCommands.registerCommand("SetTurretAngle_-90", turret.setAngleCommand(-90.0));
-        NamedCommands.registerCommand("SetTurretAngle_-20", turret.setAngleCommand(-20.0));
-
-        NamedCommands.registerCommand("TurretAimForward",   turret.moveToAngleCommand(0.0).withTimeout(3.0));
-        NamedCommands.registerCommand("TurretAimHub",       turret.aimAtTargetCommand(getHubTarget()).withTimeout(3.0));
+       ;
 
         NamedCommands.registerCommand("runIntake",   intake.runMotorCommand(1.0));
         NamedCommands.registerCommand("stopIntake",  intake.stopMotorCommand());
@@ -296,7 +286,6 @@ private Pose2d getShootTarget() {
 
     private void configureBindings()
     {
-        turret.setDefaultCommand(turret.holdPositionCommand());
 
         // ── Simulation bindings ───────────────────────────────────────────────
         if (Robot.isSimulation())
@@ -348,15 +337,6 @@ private Pose2d getShootTarget() {
             operatorXbox.a().whileTrue(intake.runMotorButBetter(1.0));
             operatorXbox.y().whileTrue(intake.runMotorButBetter(-1.0));
 
-            // ── Operator: Turret ─────────────────────────────────────────────────
-            operatorXbox.leftBumper().toggleOnTrue(
-                turret.fieldAngleLockCommand().withName("TurretFieldLock"));
-
-            operatorXbox.x().whileTrue(turret.manualControlCommand(() ->  1.0, TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC));
-            operatorXbox.b().whileTrue(turret.manualControlCommand(() -> -1.0, TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC));
-
-            operatorXbox.rightTrigger(0.5).toggleOnTrue(
-                turret.aimAtTargetCommand(getHubTarget()).withName("TurretHubLock"));
 
             // ── Operator: Shoot ──────────────────────────────────────────────────
             operatorXbox.rightBumper().whileTrue(shootWithFeedCommand());
