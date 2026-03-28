@@ -4,7 +4,8 @@
 
 package frc.robot;
 
-import com.pathplanner.lib.config.PIDConstants;
+import com.revrobotics.spark.SparkMax;
+
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
 import swervelib.math.Matter;
@@ -19,20 +20,23 @@ import swervelib.math.Matter;
  */
 public final class Constants
 {
-
+  //Math stuff
   public static final double ROBOT_MASS = (148 - 20.3) * 0.453592; // 32lbs * kg per pound
   public static final Matter CHASSIS    = new Matter(new Translation3d(0, 0, Units.inchesToMeters(8)), ROBOT_MASS);
   public static final double LOOP_TIME  = 0.13; //s, 20ms + 110ms sprk max velocity lag
   public static final double MAX_SPEED  = Units.feetToMeters(14.5);
   // Maximum speed of the robot in meters per second, used to limit acceleration.
 
+//    public static final int RSPARKMAX_ID = 6; //OLD ID for climber 
+  //  public static final int LSPARKMAX_ID = 7; //OLD ID for Climber 67 67
+    //public static final int WINCH_ID = 8; //OLD ID for Climber 67
 
-  public static final class AutonConstants
-  {
-
-    public static final PIDConstants TRANSLATION_PID = new PIDConstants(0.7, 0, 0);
-    public static final PIDConstants ANGLE_PID       = new PIDConstants(0.4, 0, 0.01);
-  }
+//  public static final class AutonConstants
+//  {
+//
+//    public static final PIDConstants TRANSLATION_PID = new PIDConstants(0.7, 0, 0);
+//    public static final PIDConstants ANGLE_PID       = new PIDConstants(0.4, 0, 0.01);
+//  }
 
   public static final class DrivebaseConstants
   {
@@ -51,25 +55,23 @@ public final class Constants
     public static final double TURN_CONSTANT    = 6;
   }
 
-  public static class HopperConstants
+  public static class AgitatorConstants 
   {
-    public static final int HOPPERVORTEX = 0;
-    public static final double FEED_SPEED = 0.5;
+    public static final int agitatorNeoID = 0;
+    public static final double vortexSpeed = -0.3;
+    public static final double servoSpeed = 0.2;
+
+    // private static final int agitatorServoID = 0; //placeholder incase we implement PID
+    // private static final double kP = 0.1;
+    // private static final double kI = 0.0;
+    // private static final double kD = 0.0;
+    // private static final double kIz = 0.0;
+    // private static final double kFF = 0.0;
+    // private static final double kMaxOutput = 1.0;
+    // private static final double kMinOutput = -1.0;
   }
 
-  public static class IntakeConstants
-  {
     //intake neo
-    public static final int INTAKENEO = 0;
-    public static final int INTAKEKRAKEN = 0;
-    public static final double speed = 0.4;
-  }
-
-  public static class ShooterConstants
-  {
-    public static final int StatorCurrentLimit = 40;
-    public static final int LEFTSHOOTKRAKEN = 0;
-    public static final int RIGHTSHOOTKRAKEN = 0;
-    public static final int NEOVORTEXID = 0;
-  }
+   // public static final int INTAKENEO = 0; //ID for Intake NEO
+  
 }
