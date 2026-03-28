@@ -30,8 +30,8 @@ import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import frc.robot.logics.SnapToHubCommand;
 import frc.robot.logics.Vision;
-import frc.robot.subsystems.FeederSubsystem;
-import frc.robot.subsystems.HopperSubsystem;
+import frc.robot.subsystems.AgitatorSubsystem;
+import frc.robot.subsystems.IndexerSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
@@ -105,12 +105,11 @@ private Pose2d getShootTarget() {
 
 
     private final IntakeSubsystem  intake  = new IntakeSubsystem(0, 0);
-    private final HopperSubsystem  hopper  = new HopperSubsystem();
-    private final FeederSubsystem  feeder  = new FeederSubsystem();
+    private final AgitatorSubsystem agitator = new AgitatorSubsystem();
+    private final IndexerSubsystem  indexer  = new IndexerSubsystem();
     private final ShooterSubsystem shooter = new ShooterSubsystem();
     public FuelSim fuelSim;
 
-    private static final double TURRET_MANUAL_MAX_SPEED_DEG_PER_SEC = 90.0;
 
     private SendableChooser<Command> autoChooser;
 
@@ -123,14 +122,12 @@ private Pose2d getShootTarget() {
 
     public RobotContainer()
     {
-        SmartDashboard.putNumber("HOPPER_SPEED",  1.0);
-        SmartDashboard.putNumber("FEEDER_SPEED",  0.9);
+        SmartDashboard.putNumber("INDEXER_SPEED",  1.0);
+        SmartDashboard.putNumber("INDEXER_SPEED",  0.9);
         SmartDashboard.putNumber("SHOOTER_SPEED", 0.77);
-
         SmartDashboard.putNumber("INTAKE_SPEED",  0.7);
         shooter.setDefaultCommand(shooter.set(0));
-        hopper.setDefaultCommand(hopper.stopMotorCommand());
-        feeder.setDefaultCommand(feeder.stopMotorCommand());
+        indexer.setDefaultCommand(indexer.stopMotorCommand());
 
         registerNamedCommands();
         configureBindings();
@@ -220,15 +217,16 @@ private Pose2d getShootTarget() {
         return Commands.defer(() ->
             Commands.sequence(
                 shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77)).alongWith(
-                    feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
+                    indexer.runMotorCommand(SmartDashboard.getNumber("INDEXER_SPEED", 0.9))
                 ).withTimeout(0.4),
                 shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77))
                        .alongWith(
-                           hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
-                           feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
+                           //hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
+                           agitator.runMotorCommand(SmartDashboard.getNumber("AGITATOR_SPEED", -0.3)),
+                           indexer.runMotorCommand(SmartDashboard.getNumber("INDEXER_SPEED", 0.9))
                        )
             ).withName("ShootWithFeed"),
-            Set.of(shooter, hopper, feeder)
+            Set.of(shooter, agitator, indexer)
         );
     }
 
@@ -243,20 +241,20 @@ private Pose2d getShootTarget() {
                 // Run shooter + hopper + feeder together for the given duration
                 shooter.set(shooterSpeed)
                     .alongWith(
-                        hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 0.9)),
-                        feeder.runMotorCommand(SmartDashboard.getNumber("FEEDER_SPEED", 0.9))
+                        agitator.runMotorCommand(SmartDashboard.getNumber("AGITATOR_SPEED", 0.9)),
+                        indexer.runMotorCommand(SmartDashboard.getNumber("INDEXER_SPEED", 0.9))
                     )
                     .withTimeout(durationSeconds),
 
                 // Stop all subsystems cleanly
                 shooter.set(0)
                     .alongWith(
-                        hopper.runMotorCommand(0),
-                        feeder.runMotorCommand(0)
+                        agitator.runMotorCommand(0),
+                        indexer.runMotorCommand(0)
                     )
                     .withTimeout(0.1)
             ).withName("ShootWithFeed"),
-            Set.of(shooter, hopper, feeder)
+            Set.of(shooter, agitator, indexer)
         );
     }
 
@@ -329,9 +327,10 @@ private Pose2d getShootTarget() {
             
 
 
-            // ── Operator: Intake ─────────────────────────────────────────────────
-            //operatorXbox.a().whileTrue(intake.runMotorButBetter(1.0));
-            //operatorXbox.y().whileTrue(intake.runMotorButBetter(-1.0));
+             //── Operator: Intake ─────────────────────────────────────────────────
+            operatorXbox.a().whileTrue(intake.runIntakeCommand());
+            //reverse intake
+            operatorXbox.y().whileTrue(intake.controlIntake(-0.8));
 
 
             // ── Operator: Shoot ──────────────────────────────────────────────────

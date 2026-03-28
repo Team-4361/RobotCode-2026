@@ -136,6 +136,10 @@ public class IntakeSubsystem extends SubsystemBase {
     public Command runIntakeCommand() {
         return this.runOnce(() -> runRoller(INTAKE_SPEED));
     }
+    public Command controlIntake(double speed)
+    {
+        return this.runOnce(() -> runRoller(speed));
+    }
 
     /** Stops the roller motor immediately. */
     public Command stopIntakeCommand() {

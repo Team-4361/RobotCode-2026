@@ -27,10 +27,6 @@ public final class Constants
   public static final double MAX_SPEED  = Units.feetToMeters(14.5);
   // Maximum speed of the robot in meters per second, used to limit acceleration.
 
-//    public static final int RSPARKMAX_ID = 6; //OLD ID for climber 
-  //  public static final int LSPARKMAX_ID = 7; //OLD ID for Climber 67 67
-    //public static final int WINCH_ID = 8; //OLD ID for Climber 67
-
 //  public static final class AutonConstants
 //  {
 //
