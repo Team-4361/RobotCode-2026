@@ -2,14 +2,7 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.controls.DutyCycleOut;
-import com.revrobotics.spark.SparkMax;
-import com.revrobotics.spark.SparkAbsoluteEncoder;
-import com.revrobotics.spark.SparkLowLevel.MotorType;
-import com.revrobotics.spark.config.SparkMaxConfig;
-import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
-import com.revrobotics.spark.SparkBase.PersistMode;
-import com.revrobotics.spark.SparkBase.ResetMode;
-import edu.wpi.first.math.controller.PIDController;
+import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
@@ -21,101 +14,84 @@ public class IntakeSubsystem extends SubsystemBase {
     private final TalonFX rollerMotor;
     private final DutyCycleOut rollerOutput = new DutyCycleOut(0.0);
 
-    /** Pivot motor – NEO (SparkMax, duty-cycle output only — no onboard PID) */
-    private final SparkMax pivotMotor;
+    /**
+     * Servo that acts as a latch/pin mechanism.
+     * When released, a pre-loaded spring deploys the intake down.
+     * When engaged, the servo re-latches the intake in the stowed position.
+     *
+     * Wired to a PWM port on the RoboRIO.
+     */
+    private final Servo latchServo;
+
+    // ─── Servo positions ─────────────────────────────────────────────────────────
 
     /**
-     * Absolute encoder plugged into the SparkMax ENCODER port.
-     * We read it here and feed it into our own WPILib PIDController.
-     * The SparkMax onboard PID is never used.
+     * Servo angle (degrees) that holds the latch engaged — intake stowed.
+     * Adjust this value to match your physical latch geometry.
      */
-    private final SparkAbsoluteEncoder absoluteEncoder;
+    private static final double SERVO_LATCHED_ANGLE   = 0.0;
 
-    // ─── PID───────────────────────────────────────
-
-    private final PIDController pivotPID;
-
-    // ─── Setpoints (degrees) ─────────────────────────────────────────────────────
-
-    /** Intake deployed – roller down, attached to the extendable hopper. */
-    public static final double PIVOT_DOWN_DEGREES = 90.0; 
-
-    /** Intake stowed. */
-    public static final double PIVOT_UP_DEGREES   = 0.0;    
-
-    // ─── Pivot output clamp ───────────────────────────────────────────────────────
-
-    private static final double PIVOT_MAX_OUTPUT = 0.4;    
+    /**
+     * Servo angle (degrees) that releases the latch — spring deploys intake.
+     * Adjust this value to match your physical latch geometry.
+     */
+    private static final double SERVO_RELEASED_ANGLE  = 90.0;
 
     // ─── Roller speed ────────────────────────────────────────────────────────────
 
-    private static final double INTAKE_SPEED = 0.8;      
+    private static final double INTAKE_SPEED = 0.8;
 
     // ─── Internal state ──────────────────────────────────────────────────────────
 
-    private boolean pivotPIDEnabled = false;
+    /** Tracks whether the latch is currently engaged (intake stowed). */
+    private boolean isLatched = true;
 
     // ─── Constructor ─────────────────────────────────────────────────────────────
 
     /**
      * @param rollerMotorID  CAN ID of the Kraken (TalonFX) roller motor
-     * @param pivotMotorID   CAN ID of the NEO pivot SparkMax
+     * @param servoPWMPort   PWM port on the RoboRIO the latch servo is plugged into
      */
-    public IntakeSubsystem(int rollerMotorID, int pivotMotorID) {
+    public IntakeSubsystem(int rollerMotorID, int servoPWMPort) {
 
         // Roller – Kraken X60
         rollerMotor = new TalonFX(rollerMotorID);
 
-        // Pivot – NEO via SparkMax, brake mode so it holds when output is zero
-        pivotMotor = new SparkMax(pivotMotorID, MotorType.kBrushless);
-        SparkMaxConfig pivotConfig = new SparkMaxConfig();
-        pivotConfig.idleMode(IdleMode.kBrake);
-        pivotMotor.configure(pivotConfig,
-                ResetMode.kResetSafeParameters,
-                PersistMode.kPersistParameters);
+        // Latch servo – controls the spring-loaded intake pivot
+        latchServo = new Servo(servoPWMPort);
 
-        // Read the absolute encoder through the SparkMax API
-        absoluteEncoder = pivotMotor.getAbsoluteEncoder();
-
-        
-        pivotPID = new PIDController(0.01, 0.0, 0.0);
-        pivotPID.setTolerance(1.5); // degrees
+        // Start in the stowed/latched position
+        engageLatch();
     }
 
     // ─── Periodic ────────────────────────────────────────────────────────────────
 
     @Override
     public void periodic() {
-        if (pivotPIDEnabled) {
-            double measurement = getAngleDegrees();
-            double output      = pivotPID.calculate(measurement);
-
-            // Clamp so we don't slam the mechanism
-            output = Math.max(-PIVOT_MAX_OUTPUT, Math.min(PIVOT_MAX_OUTPUT, output));
-            pivotMotor.set(output);
-        }
+        // No continuous control needed — the servo holds its position
+        // and the spring handles the pivot motion passively.
     }
 
     // ─── Hardware helpers ────────────────────────────────────────────────────────
 
     /**
-     * Returns the current pivot angle in degrees.
-     * SparkAbsoluteEncoder returns [0, 1) turns by default — multiply by 360
-     * to convert to degrees. If you've set a position conversion factor on the
-     * SparkMax config, remove the * 360 and it will already be in degrees.
+     * Moves the servo to the latched position, re-engaging the latch pin
+     * to hold the intake in the stowed (up) position.
+     * Call this only when the intake has been physically pushed back up
+     * and is ready to be latched.
      */
-    public double getAngleDegrees() {
-        return absoluteEncoder.getPosition() * 360.0;
+    private void engageLatch() {
+        latchServo.setAngle(SERVO_LATCHED_ANGLE);
+        isLatched = true;
     }
 
-    private void setPivotSetpoint(double degrees) {
-        pivotPID.setSetpoint(degrees);
-        pivotPIDEnabled = true;
-    }
-
-    private void stopPivot() {
-        pivotPIDEnabled = false;
-        pivotMotor.stopMotor();
+    /**
+     * Moves the servo to the released position, freeing the latch pin
+     * so the spring can deploy the intake downward.
+     */
+    private void releaseLatch() {
+        latchServo.setAngle(SERVO_RELEASED_ANGLE);
+        isLatched = false;
     }
 
     private void runRoller(double speed) {
@@ -126,28 +102,54 @@ public class IntakeSubsystem extends SubsystemBase {
         rollerMotor.stopMotor();
     }
 
-    // ─── Commands ────────────────────────────────────────────────────────────────
+    // ─── State accessors ─────────────────────────────────────────────────────────
 
-    /** Pivots the intake down and holds it there via PID. */
-    public Command pivotDownCommand() {
-        return this.runOnce(() -> setPivotSetpoint(PIVOT_DOWN_DEGREES));
+    /** Returns true if the latch servo is engaged and the intake is stowed. */
+    public boolean isLatched() {
+        return isLatched;
     }
 
-    /** Pivots the intake up (stow) and holds it there via PID. */
-    public Command pivotUpCommand() {
-        return this.runOnce(() -> setPivotSetpoint(PIVOT_UP_DEGREES));
+    // ─── Commands ────────────────────────────────────────────────────────────────
+
+    /**
+     * Releases the latch servo so the spring deploys the intake downward.
+     * The intake will stay down until stowIntakeCommand() is called
+     * (which assumes your robot mechanically re-cocks the spring first).
+     */
+    public Command deployIntakeCommand() {
+        return this.runOnce(this::releaseLatch);
     }
 
     /**
-     * Runs the roller.
-     * It keeps spinning until stopIntakeCommand() is called.
+     * Re-engages the latch servo to lock the intake in the stowed position.
+     * Only call this after the intake has been physically returned to the
+     * stowed position (e.g., by a separate re-cocking mechanism or manually).
+     */
+    public Command stowIntakeCommand() {
+        return this.runOnce(this::engageLatch);
+    }
+
+    /**
+     * Runs the roller motor.
+     * The roller keeps spinning until stopIntakeCommand() is called.
      */
     public Command runIntakeCommand() {
         return this.runOnce(() -> runRoller(INTAKE_SPEED));
     }
 
-    /** Stops the roller immediately. */
+    /** Stops the roller motor immediately. */
     public Command stopIntakeCommand() {
-        return this.runOnce(() -> stopRoller());
+        return this.runOnce(this::stopRoller);
+    }
+
+    /**
+     * Convenience command: releases the latch and immediately starts the roller.
+     * Useful for binding to a single button press.
+     */
+    public Command deployAndRunCommand() {
+        return this.runOnce(() -> {
+            releaseLatch();
+            runRoller(INTAKE_SPEED);
+        });
     }
 }
