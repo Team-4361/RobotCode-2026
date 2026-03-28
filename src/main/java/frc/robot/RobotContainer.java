@@ -34,6 +34,7 @@ import frc.robot.subsystems.FeederSubsystem;
 import frc.robot.subsystems.HopperSubsystem;
 import frc.robot.subsystems.IntakeSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
+import frc.robot.subsystems.AgitatorSubsystem;
 import frc.robot.subsystems.TurretSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 import frc.robot.util.FuelSim;
@@ -106,6 +107,7 @@ private Pose2d getShootTarget() {
 
 
     private final IntakeSubsystem  intake  = new IntakeSubsystem();
+    private final AgitatorSubsystem agitatorSubsystem  = new AgitatorSubsystem();
     private final HopperSubsystem  hopper  = new HopperSubsystem();
     private final FeederSubsystem  feeder  = new FeederSubsystem();
     private final TurretSubsystem  turret  = new TurretSubsystem(drivebase);
