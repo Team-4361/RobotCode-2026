@@ -19,7 +19,6 @@ public class teleopController {
     // ── Hardware ──────────────────────────────────────────────────────────────
     private CommandJoystick joystickL;
     private CommandJoystick joystickR;
-    private CommandXboxController xboxController;
 
     // ── Filtered outputs ──────────────────────────────────────────────────────
     public double xV = 0;
@@ -73,7 +72,6 @@ public class teleopController {
                             CommandXboxController xboxCommandJoystick) {
         joystickL    = joyL;
         joystickR    = joyR;
-        xboxController = xboxCommandJoystick;
     }
 
     // =========================================================================
