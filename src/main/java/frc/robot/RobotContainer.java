@@ -104,7 +104,7 @@ private Pose2d getShootTarget() {
 // );
 
 
-    private final IntakeSubsystem  intake  = new IntakeSubsystem();
+    private final IntakeSubsystem  intake  = new IntakeSubsystem(0, 0);
     private final HopperSubsystem  hopper  = new HopperSubsystem();
     private final FeederSubsystem  feeder  = new FeederSubsystem();
     private final ShooterSubsystem shooter = new ShooterSubsystem();
@@ -265,11 +265,7 @@ private Pose2d getShootTarget() {
         NamedCommands.registerCommand("SnapToHub",   new SnapToHubCommand());
 
        ;
-
-        NamedCommands.registerCommand("runIntake",   intake.runMotorCommand(1.0));
-        NamedCommands.registerCommand("stopIntake",  intake.stopMotorCommand());
-
-        NamedCommands.registerCommand("ShooterSpinUp", shooter.aimAtHubContinuous(drivebase));
+        //NamedCommands.registerCommand("ShooterSpinUp", shooter.aimAtHubContinuous(drivebase));
         NamedCommands.registerCommand("ShooterStop",   Commands.runOnce(() -> shooter.set(0), shooter));
         NamedCommands.registerCommand("Shoot",         shootWithFeedCommandAuto(0.77, 6.7));
         NamedCommands.registerCommand("ShootCenter",         shootWithFeedCommandAuto(0.73, 8.7));
@@ -334,8 +330,8 @@ private Pose2d getShootTarget() {
 
 
             // ── Operator: Intake ─────────────────────────────────────────────────
-            operatorXbox.a().whileTrue(intake.runMotorButBetter(1.0));
-            operatorXbox.y().whileTrue(intake.runMotorButBetter(-1.0));
+            //operatorXbox.a().whileTrue(intake.runMotorButBetter(1.0));
+            //operatorXbox.y().whileTrue(intake.runMotorButBetter(-1.0));
 
 
             // ── Operator: Shoot ──────────────────────────────────────────────────
