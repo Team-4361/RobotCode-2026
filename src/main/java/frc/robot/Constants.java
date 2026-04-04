@@ -4,8 +4,6 @@
 
 package frc.robot;
 
-import com.revrobotics.spark.SparkMax;
-
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
 import swervelib.math.Matter;
@@ -55,9 +53,7 @@ public final class Constants
   {
     public static final int agitatorNeoID = 0;
     public static final double vortexSpeed = -0.3;
-    public static final double servoSpeed = 0.2;
-
-    // private static final int agitatorServoID = 0; //placeholder incase we implement PID
+  private static final int agitatorServoID = 0; 
     // private static final double kP = 0.1;
     // private static final double kI = 0.0;
     // private static final double kD = 0.0;

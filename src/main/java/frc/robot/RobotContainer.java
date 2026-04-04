@@ -221,7 +221,6 @@ private Pose2d getShootTarget() {
                 ).withTimeout(0.4),
                 shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77))
                        .alongWith(
-                           //hopper.runMotorCommand(SmartDashboard.getNumber("HOPPER_SPEED", 1.0)),
                            agitator.runMotorCommand(SmartDashboard.getNumber("AGITATOR_SPEED", -0.3)),
                            indexer.runMotorCommand(SmartDashboard.getNumber("INDEXER_SPEED", 0.9))
                        )
@@ -331,6 +330,7 @@ private Pose2d getShootTarget() {
             operatorXbox.a().whileTrue(intake.runIntakeCommand());
             //reverse intake
             operatorXbox.y().whileTrue(intake.controlIntake(-0.8));
+            
 
 
             // ── Operator: Shoot ──────────────────────────────────────────────────

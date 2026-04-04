@@ -6,6 +6,7 @@ import com.revrobotics.spark.SparkFlex;
 import com.revrobotics.spark.config.SparkBaseConfig.IdleMode;
 import com.revrobotics.spark.config.SparkFlexConfig;
 import frc.robot.Constants;
+import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
@@ -13,11 +14,13 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class AgitatorSubsystem extends SubsystemBase
 {
         private final SparkFlex sparkFlex;
+        private final Servo servo;
 
 
     public AgitatorSubsystem()
     {
         sparkFlex = new SparkFlex(Constants.AgitatorConstants.agitatorNeoID, MotorType.kBrushless);
+        servo = new Servo(Constants.AgitatorConstants.agitatorNeoID);
         SparkFlexConfig config = new SparkFlexConfig();
         config.idleMode(IdleMode.kBrake);
         sparkFlex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
@@ -43,19 +46,9 @@ public class AgitatorSubsystem extends SubsystemBase
         return this.runOnce(() -> stopAgitator());
     }
     
-    // public void setCServoSpeed (double servoSpeed) //clockwise
-    // {
-    //     sparkMax.set(servoSpeed);
-    // }
+    public void setCServoAngle (double servoAmount) //clockwise
+     {
+         servo.set(servoAmount);
+    }
 
-    // public void setCCServoSpeed (double servoSpeed) //counterclockwise
-    // {
-    //     sparkMax.set(-servoSpeed);
-    // }
-
-    // public void stopServo()
-    // {
-    //     sparkMax.set(0);
-    // }
-    
- }
+}
