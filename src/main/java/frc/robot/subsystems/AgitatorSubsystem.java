@@ -14,13 +14,11 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class AgitatorSubsystem extends SubsystemBase
 {
         private final SparkFlex sparkFlex;
-        private final Servo servo;
 
 
     public AgitatorSubsystem()
     {
         sparkFlex = new SparkFlex(Constants.AgitatorConstants.agitatorNeoID, MotorType.kBrushless);
-        servo = new Servo(Constants.AgitatorConstants.agitatorNeoID);
         SparkFlexConfig config = new SparkFlexConfig();
         config.idleMode(IdleMode.kBrake);
         sparkFlex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
@@ -46,9 +44,6 @@ public class AgitatorSubsystem extends SubsystemBase
         return this.runOnce(() -> stopAgitator());
     }
     
-    public void setCServoAngle (double servoAmount) //clockwise
-     {
-         servo.set(servoAmount);
-    }
+
 
 }

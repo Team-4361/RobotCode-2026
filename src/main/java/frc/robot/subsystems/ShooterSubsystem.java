@@ -65,6 +65,7 @@ public class ShooterSubsystem extends SubsystemBase {
     // withLooselyCoupledFollowers().
     private final SmartMotorControllerConfig followerSmcConfig =
         new SmartMotorControllerConfig(this)
+            .withControlMode(ControlMode.OPEN_LOOP)
             .withTelemetry("FollowerShooterMotor", TelemetryVerbosity.HIGH)
             .withGearing(new MechanismGearing(GearBox.fromReductionStages(1, 1)))
             // Invert the follower if it's physically mounted in the opposite
@@ -104,6 +105,8 @@ public class ShooterSubsystem extends SubsystemBase {
             // Note: this does NOT forward DutyCycle or Voltage requests — those
             // are handled manually in SysId below.
             .withLooselyCoupledFollowers(followerMotor);
+
+
 
     private final SmartMotorController primaryMotor =
         new TalonFXWrapper(primaryKraken, DCMotor.getKrakenX60(1), primarySmcConfig);
