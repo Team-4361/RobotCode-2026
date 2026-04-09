@@ -20,6 +20,7 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -32,13 +33,19 @@ import frc.robot.logics.SnapToHubCommand;
 import frc.robot.logics.Vision;
 import frc.robot.subsystems.AgitatorSubsystem;
 import frc.robot.subsystems.IndexerSubsystem;
-import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.subsystems.IntakeArmSubsystem;
+import frc.robot.subsystems.IntakeRollerSubsystem;
 import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
 import frc.robot.util.FuelSim;
 
+
+
 public class RobotContainer
 {
+
+
+    
 
     // ========== FIELD CONSTANTS ==========
     private static final double FIELD_LENGTH_M = Units.inchesToMeters(651.25);
@@ -104,10 +111,11 @@ private Pose2d getShootTarget() {
 // );
 
 
-    private final IntakeSubsystem  intake  = new IntakeSubsystem(0, 0);
     private final AgitatorSubsystem agitator = new AgitatorSubsystem();
     private final IndexerSubsystem  indexer  = new IndexerSubsystem();
     private final ShooterSubsystem shooter = new ShooterSubsystem();
+    private final IntakeArmSubsystem    intakeArm    = new IntakeArmSubsystem();
+    private final IntakeRollerSubsystem intakeRoller = new IntakeRollerSubsystem();
     public FuelSim fuelSim;
 
 
@@ -324,13 +332,12 @@ private Pose2d getShootTarget() {
 
 
             
-
-
-             //── Operator: Intake ─────────────────────────────────────────────────
-            operatorXbox.a().whileTrue(intake.runIntakeCommand());
-            //reverse intake
-            operatorXbox.y().whileTrue(intake.controlIntake(-0.8));
-            
+            operatorXbox.a().onTrue(intakeArm.deployCommand());
+            operatorXbox.b().onTrue(intakeArm.stowCommand());
+            operatorXbox.rightTrigger(0.3).whileTrue(intakeRoller.intakeCommand());
+        operatorXbox.leftTrigger(0.3).whileTrue(intakeRoller.outtakeCommand());
+        operatorXbox.povUp().whileTrue(intakeArm.manualCommand(0.2));
+        operatorXbox.povDown().whileTrue(intakeArm.manualCommand(-0.2));
 
 
             // ── Operator: Shoot ──────────────────────────────────────────────────
