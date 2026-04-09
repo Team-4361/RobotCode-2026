@@ -183,6 +183,7 @@ public class ShooterSubsystem extends SubsystemBase {
      * @return Command that applies the duty cycle.
      */
     public Command set(double dutyCycle) {
+        followerKraken.set(dutyCycle);
         return shooter.set(dutyCycle);
     }
 
