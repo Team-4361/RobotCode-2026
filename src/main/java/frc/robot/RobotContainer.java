@@ -7,6 +7,7 @@ package frc.robot;
 import java.io.File;
 import java.util.Optional;
 import java.util.Set;
+import java.util.jar.Attributes.Name;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
@@ -271,6 +272,8 @@ private Pose2d getShootTarget() {
 
        ;
         //NamedCommands.registerCommand("ShooterSpinUp", shooter.aimAtHubContinuous(drivebase));
+        NamedCommands.registerCommand("DeployIntake",intakeArm.deployCommand());
+        NamedCommands.registerCommand("Intake", intakeRoller.intakeCommand() );
         NamedCommands.registerCommand("ShooterStop",   Commands.runOnce(() -> shooter.set(0), shooter));
         NamedCommands.registerCommand("Shoot",         shootWithFeedCommandAuto(0.77, 6.7));
         NamedCommands.registerCommand("ShootCenter",         shootWithFeedCommandAuto(0.73, 8.7));
