@@ -45,8 +45,8 @@ import yams.motorcontrollers.remote.TalonFXWrapper;
 public class ShooterSubsystem extends SubsystemBase {
 
     // ── CAN IDs ───────────────────────────────────────────────────────────────
-    private static final int PRIMARY_CAN_ID  = 10;
-    private static final int FOLLOWER_CAN_ID = 11;
+    private static final int PRIMARY_CAN_ID  = 13;
+    private static final int FOLLOWER_CAN_ID = 14;
 
     // =========================================================================
     //  Motor hardware
@@ -156,15 +156,8 @@ public class ShooterSubsystem extends SubsystemBase {
             null, // SignalLogger handles logging via CTRE automatically
             this));
 
-    // =========================================================================
-    //  Constructor
-    // =========================================================================
 
     public ShooterSubsystem() {}
-
-    // =========================================================================
-    //  Public command API
-    // =========================================================================
 
     /** @return Current measured flywheel speed. */
     public AngularVelocity getVelocity() {

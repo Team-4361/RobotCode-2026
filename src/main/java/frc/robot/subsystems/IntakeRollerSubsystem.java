@@ -10,7 +10,7 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class IntakeRollerSubsystem extends SubsystemBase {
 
-    private static final int    DEVICE_ID     = 10;       
+    private static final int    DEVICE_ID     = 15;       
     private static final double INTAKE_SPEED  =  0.8;
     private static final double OUTTAKE_SPEED = -0.8;
 

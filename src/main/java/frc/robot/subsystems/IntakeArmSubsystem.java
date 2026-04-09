@@ -15,8 +15,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 public class IntakeArmSubsystem extends SubsystemBase {
 
     // --- Constants ---
-    private static final int    LEADER_ID          = 2;
-    private static final int    FOLLOWER_ID        = 3;
+    private static final int    LEADER_ID          = 10;
+    private static final int    FOLLOWER_ID        = 11;
     private static final double DEPLOYED_POSITION  = 22.5;  // rotations — tune this
     private static final double STOWED_POSITION    = 0.0;
     private static final double kP                 = 0.1;
@@ -34,19 +34,17 @@ public class IntakeArmSubsystem extends SubsystemBase {
         leader   = new SparkMax(LEADER_ID,   MotorType.kBrushless);
         follower = new SparkMax(FOLLOWER_ID, MotorType.kBrushless);
 
-        // Configure leader
         SparkMaxConfig leaderConfig = new SparkMaxConfig();
         leaderConfig
             .idleMode(IdleMode.kBrake)
             .smartCurrentLimit(40);
         leader.configure(leaderConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
-        // Configure follower — mirrors leader, same direction
         SparkMaxConfig followerConfig = new SparkMaxConfig();
         followerConfig
             .idleMode(IdleMode.kBrake)
             .smartCurrentLimit(40)
-            .follow(leader, false); // flip to true if it spins the wrong way
+            .follow(leader, false); // son im crine
         follower.configure(followerConfig, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
 
         encoder = leader.getEncoder();
@@ -76,7 +74,7 @@ public class IntakeArmSubsystem extends SubsystemBase {
     }
 
     public void stop() {
-        leader.stopMotor(); // follower mirrors automatically
+        leader.stopMotor(); 
         pid.reset();
     }
 
@@ -117,7 +115,6 @@ public class IntakeArmSubsystem extends SubsystemBase {
         );
     }
 
-    // --- Periodic ---
 
     @Override
     public void periodic() {
