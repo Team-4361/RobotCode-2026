@@ -135,8 +135,9 @@ private Pose2d getShootTarget() {
         SmartDashboard.putNumber("INDEXER_SPEED",  0.9);
         SmartDashboard.putNumber("SHOOTER_SPEED", 0.77);
         SmartDashboard.putNumber("INTAKE_SPEED",  0.7);
-        shooter.setDefaultCommand(shooter.set(0));
+        shooter.setDefaultCommand(shooter.stop());
         indexer.setDefaultCommand(indexer.stopMotorCommand());
+        agitator.setDefaultCommand(agitator.stopMotorCommand());
 
         registerNamedCommands();
         configureBindings();
@@ -226,12 +227,12 @@ private Pose2d getShootTarget() {
         return Commands.defer(() ->
             Commands.sequence(
                 shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77)).alongWith(
-                    indexer.runMotorCommand(SmartDashboard.getNumber("INDEXER_SPEED", 0.9))
-                ).withTimeout(0.4),
+                    indexer.runMotorCommand(-0.5)
+                ).withTimeout(0),
                 shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77))
                        .alongWith(
-                           agitator.runMotorCommand(SmartDashboard.getNumber("AGITATOR_SPEED", -0.3)),
-                           indexer.runMotorCommand(SmartDashboard.getNumber("INDEXER_SPEED", 0.9))
+                           agitator.runMotorCommand(0.3),
+                           indexer.runMotorCommand(-0.5)
                        )
             ).withName("ShootWithFeed"),
             Set.of(shooter, agitator, indexer)

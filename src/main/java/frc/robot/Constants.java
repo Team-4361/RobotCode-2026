@@ -52,7 +52,7 @@ public final class Constants
   public static class AgitatorConstants 
   {
     public static final int agitatorNeoID = 9;
-    public static final double vortexSpeed = -0.3;
+    public static final double vortexSpeed = 0.3;
   private static final int agitatorServoID = 0; 
     // private static final double kP = 0.1;
     // private static final double kI = 0.0;
