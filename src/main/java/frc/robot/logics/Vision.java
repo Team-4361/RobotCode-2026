@@ -51,16 +51,16 @@ public class Vision {
             Units.inchesToMeters(-8.75),
             Units.inchesToMeters(19.0)
         ),
-        new Rotation3d(0, Units.degreesToRadians(-26), Units.degreesToRadians(0))
+        new Rotation3d(0, Units.degreesToRadians(-26.8), Units.degreesToRadians(0))
     );
 
     Transform3d frontRightCamTransform = new Transform3d(
         new Translation3d(
-            Units.inchesToMeters(13.5),
-            Units.inchesToMeters(8.75),
-            Units.inchesToMeters(22.125)
+            Units.inchesToMeters(15),
+            Units.inchesToMeters(13.9375),
+            Units.inchesToMeters(19.0625)
         ),
-        new Rotation3d(0, Units.degreesToRadians(-26), Units.degreesToRadians(0))
+        new Rotation3d(0, Units.degreesToRadians(-26.8), Units.degreesToRadians(0))
     );
 
     // --- Pose estimators ---
