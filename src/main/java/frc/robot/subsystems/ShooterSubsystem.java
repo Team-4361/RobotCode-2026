@@ -186,7 +186,10 @@ public class ShooterSubsystem extends SubsystemBase {
         followerKraken.set(dutyCycle);
         return shooter.set(dutyCycle);
     }
-
+    public Command stop() {
+        followerKraken.set(0);
+        return shooter.set(0);
+    }
     // =========================================================================
     //  SysId commands — bind these to controller buttons in RobotContainer
     // =========================================================================

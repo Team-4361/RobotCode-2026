@@ -135,7 +135,7 @@ private Pose2d getShootTarget() {
         SmartDashboard.putNumber("INDEXER_SPEED",  0.9);
         SmartDashboard.putNumber("SHOOTER_SPEED", 0.77);
         SmartDashboard.putNumber("INTAKE_SPEED",  0.7);
-        shooter.setDefaultCommand(shooter.set(0));
+        shooter.setDefaultCommand(shooter.stop());
         indexer.setDefaultCommand(indexer.stopMotorCommand());
         agitator.setDefaultCommand(agitator.stopMotorCommand());
 
