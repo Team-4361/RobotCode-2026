@@ -7,50 +7,7 @@
         {
           "type": "path",
           "data": {
-            "pathName": "CenterShootToIntake"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "SetTurretAngle_-20"
-          }
-        },
-        {
-          "type": "parallel",
-          "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "runIntake"
-                }
-              },
-              {
-                "type": "path",
-                "data": {
-                  "pathName": "IntakeCenter"
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "stopIntake"
-          }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "center back"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "SetTurretAngle_-20"
+            "pathName": "Right Cycle 1"
           }
         },
         {
@@ -62,7 +19,37 @@
         {
           "type": "named",
           "data": {
-            "name": "Shoot"
+            "name": "ShootCenter"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Right Cycle 2"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "SnapToHub"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ShootCenter"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "stowHalf"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Right Cycle 3"
           }
         }
       ]

@@ -7,7 +7,6 @@ package frc.robot;
 import java.io.File;
 import java.util.Optional;
 import java.util.Set;
-import java.util.jar.Attributes.Name;
 
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
@@ -21,7 +20,6 @@ import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
-import edu.wpi.first.wpilibj.XboxController;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
@@ -44,7 +42,8 @@ import frc.robot.util.FuelSim;
 
 public class RobotContainer
 {
-
+   //shooter hell yeah twin 
+   public static final double SHOOTER_REV_SPEED = 0.6;
 
     
 
@@ -53,6 +52,7 @@ public class RobotContainer
     private static final double FIELD_WIDTH_M = Units.inchesToMeters(317.69);
 
     public static final Translation2d HUB_CENTER_BLUE =
+
         new Translation2d(Units.inchesToMeters(182.11), Units.inchesToMeters(158.84));
 
     public static final Translation2d HUB_CENTER_RED =
@@ -135,7 +135,7 @@ private Pose2d getShootTarget() {
         SmartDashboard.putNumber("INDEXER_SPEED",  0.9);
         SmartDashboard.putNumber("SHOOTER_SPEED", 0.77);
         SmartDashboard.putNumber("INTAKE_SPEED",  0.7);
-        shooter.setDefaultCommand(shooter.stop());
+        shooter.setDefaultCommand(shooter.STOPP());
         indexer.setDefaultCommand(indexer.stopMotorCommand());
         agitator.setDefaultCommand(agitator.stopMotorCommand());
 
@@ -226,13 +226,12 @@ private Pose2d getShootTarget() {
     {
         return Commands.defer(() ->
             Commands.sequence(
-                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77)).alongWith(
-                    indexer.runMotorCommand(-0.5)
+                shooter.setSPEED(SHOOTER_REV_SPEED).alongWith(
                 ).withTimeout(0),
-                shooter.set(SmartDashboard.getNumber("SHOOTER_SPEED", 0.77))
+                shooter.setSPEED(SHOOTER_REV_SPEED)
                        .alongWith(
                            agitator.runMotorCommand(0.3),
-                           indexer.runMotorCommand(-0.5)
+                           indexer.runMotorCommand(-0.4)
                        )
             ).withName("ShootWithFeed"),
             Set.of(shooter, agitator, indexer)
@@ -244,19 +243,19 @@ private Pose2d getShootTarget() {
         return Commands.defer(() ->
             Commands.sequence(
                 // Spin up shooter first
-                shooter.set(shooterSpeed)
-                    .withTimeout(0.35),
+                shooter.setSPEED(SHOOTER_REV_SPEED)
+                    .withTimeout(0.0),
 
                 // Run shooter + hopper + feeder together for the given duration
-                shooter.set(shooterSpeed)
+                shooter.setSPEED(SHOOTER_REV_SPEED)
                     .alongWith(
-                        agitator.runMotorCommand(SmartDashboard.getNumber("AGITATOR_SPEED", 0.9)),
-                        indexer.runMotorCommand(SmartDashboard.getNumber("INDEXER_SPEED", 0.9))
+                           agitator.runMotorCommand(0.3),
+                           indexer.runMotorCommand(-0.4)
                     )
                     .withTimeout(durationSeconds),
 
                 // Stop all subsystems cleanly
-                shooter.set(0)
+                shooter.STOPP()
                     .alongWith(
                         agitator.runMotorCommand(0),
                         indexer.runMotorCommand(0)
@@ -267,21 +266,73 @@ private Pose2d getShootTarget() {
         );
     }
 
+private Command shootWithIntakeBounceAuto(double shooterSpeed, double durationSeconds)
+{
+    return Commands.defer(() ->
+        Commands.sequence(
+            // Spin up shooter first
+            shooter.set(shooterSpeed)
+                .withTimeout(0.35),
+
+            // Shoot + agitator + indexer + intake bouncing for duration
+            shooter.set(shooterSpeed)
+                .alongWith(
+                    agitator.runMotorCommand(SmartDashboard.getNumber("AGITATOR_SPEED", 0.9)),
+                    indexer.runMotorCommand(SmartDashboard.getNumber("INDEXER_SPEED", 0.9)),
+                    Commands.repeatingSequence(
+                        intakeArm.stowCommand(),
+                        intakeArm.deployCommand()
+                    )
+                )
+                .withTimeout(durationSeconds),
+
+            // Stop shooter/agitator/indexer, deploy intake down at the end
+            shooter.set(0)
+                .alongWith(
+                    agitator.runMotorCommand(0),
+                    indexer.runMotorCommand(0),
+                    intakeArm.deployCommand()
+                )
+                .withTimeout(0.1)
+        ).withName("ShootWithIntakeBounce"),
+        Set.of(shooter, agitator, indexer, intakeArm)
+    );
+}
+
+
+
     private void registerNamedCommands()
     {
         NamedCommands.registerCommand("SnapToHub",   new SnapToHubCommand());
 
-       ;
+       
         //NamedCommands.registerCommand("ShooterSpinUp", shooter.aimAtHubContinuous(drivebase));
+// NamedCommands.registerCommand("DeployIntake",
+//     Commands.defer(() -> intakeArm.deploySimple(), Set.of(intakeArm))
+// );        
+
+
         NamedCommands.registerCommand("DeployIntake",intakeArm.deployCommand());
+        NamedCommands.registerCommand("stowHalf",intakeArm.stowHalfCommand());
+
+NamedCommands.registerCommand("stowIntake",
+    Commands.defer(() -> intakeArm.stowCommand(), Set.of(intakeArm))
+);
         NamedCommands.registerCommand("Intake", intakeRoller.intakeCommand() );
+        NamedCommands.registerCommand("StopIntake", 
+            Commands.runOnce(intakeRoller::stop, intakeRoller)
+        );
+
         NamedCommands.registerCommand("ShooterStop",   Commands.runOnce(() -> shooter.set(0), shooter));
         NamedCommands.registerCommand("Shoot",         shootWithFeedCommandAuto(0.77, 6.7));
-        NamedCommands.registerCommand("ShootCenter",         shootWithFeedCommandAuto(0.73, 8.7));
+        NamedCommands.registerCommand("ShootCenter",         shootWithFeedCommandAuto(SHOOTER_REV_SPEED, 3));
         NamedCommands.registerCommand("ShootFull",         shootWithFeedCommand());
 
-        
-        
+        NamedCommands.registerCommand("RevShooter", shooter.revShooter(SHOOTER_REV_SPEED));
+    NamedCommands.registerCommand("ShootBounce", shootWithIntakeBounceAuto(0.77, 6.7));
+// NamedCommands.registerCommand("stowHalf",
+//     Commands.defer(() -> intakeArm.stowHalfCommand(), Set.of(intakeArm))
+// );        
         
         
         
@@ -334,18 +385,22 @@ private Pose2d getShootTarget() {
 
 // drivebase.setDefaultCommand(teleopFlightDriveCommand);
 
-
+            
             
             operatorXbox.a().onTrue(intakeArm.deployCommand());
             operatorXbox.b().onTrue(intakeArm.stowCommand());
-            operatorXbox.rightTrigger(0.3).whileTrue(intakeRoller.intakeCommand());
+            operatorXbox.x().onTrue(intakeArm.stowHalfCommand());
+            operatorXbox.rightTrigger(0.3).toggleOnTrue(intakeRoller.intakeCommand());
         operatorXbox.leftTrigger(0.3).whileTrue(intakeRoller.outtakeCommand());
-        operatorXbox.povUp().whileTrue(intakeArm.manualCommand(0.2));
-        operatorXbox.povDown().whileTrue(intakeArm.manualCommand(-0.2));
+        operatorXbox.povUp().whileTrue(intakeArm.manualCommand());
+        operatorXbox.povDown().whileTrue(intakeArm.manualCommandDown());
 
 
             // ── Operator: Shoot ──────────────────────────────────────────────────
             operatorXbox.rightBumper().whileTrue(shootWithFeedCommand());
+            operatorXbox.leftBumper().whileTrue(shooter.setSPEED(SHOOTER_REV_SPEED));
+
+            
         }
     }
 

@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.SignalLogger;
 
@@ -47,6 +48,7 @@ public class ShooterSubsystem extends SubsystemBase {
     // ── CAN IDs ───────────────────────────────────────────────────────────────
     private static final int PRIMARY_CAN_ID  = 13;
     private static final int FOLLOWER_CAN_ID = 14;
+    private static final DutyCycleOut zero = new DutyCycleOut(0);
 
     // =========================================================================
     //  Motor hardware
@@ -100,11 +102,8 @@ public class ShooterSubsystem extends SubsystemBase {
             .withIdleMode(MotorMode.COAST)
             .withStatorCurrentLimit(Amps.of(40))
             .withClosedLoopRampRate(Seconds.of(0.25))
-            .withOpenLoopRampRate(Seconds.of(0.25))
-            // Follower mirrors every velocity/position setpoint from the primary.
-            // Note: this does NOT forward DutyCycle or Voltage requests — those
-            // are handled manually in SysId below.
-            .withLooselyCoupledFollowers(followerMotor);
+            .withOpenLoopRampRate(Seconds.of(0.25));
+
 
 
 
@@ -176,6 +175,32 @@ public class ShooterSubsystem extends SubsystemBase {
         return shooter.setSpeed(speed);
     }
 
+    public void changeShooterSpeed (double speed) {
+                followerKraken.setControl(new DutyCycleOut(speed));
+                primaryKraken.setControl(new DutyCycleOut(speed));
+
+    }
+
+
+        public void stopShooterSpeed () {
+                followerKraken.setControl(new DutyCycleOut(0));
+                primaryKraken.setControl(new DutyCycleOut(0));
+    }
+
+
+    public Command setSPEED(double speed) {
+        return this.run(
+            () -> changeShooterSpeed(speed));
+    }
+    public Command revShooter(double speed) {
+        return this.runOnce(
+            () -> changeShooterSpeed(speed));
+    }
+
+    public Command STOPP() {
+        return this.run(
+            () -> stopShooterSpeed());
+    }
     /**
      * Open-loop duty-cycle control.
      *
@@ -186,8 +211,14 @@ public class ShooterSubsystem extends SubsystemBase {
         followerKraken.set(dutyCycle);
         return shooter.set(dutyCycle);
     }
+
+
+        public Command speeeed(double dutyCycle) {
+        followerKraken.setControl(new DutyCycleOut(dutyCycle));
+        return shooter.set(dutyCycle);
+    }
     public Command stop() {
-        followerKraken.set(0);
+        followerKraken.setControl(zero);
         return shooter.set(0);
     }
     // =========================================================================

@@ -6,6 +6,7 @@ package frc.robot;
 
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -27,7 +28,7 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
   public double xV = 0;
   public double yV = 0;
   public double rV = 0;
-
+  public boolean isAuto = false;
   public SlewRateLimiter xfilter = new SlewRateLimiter(4);
   public SlewRateLimiter yfilter = new SlewRateLimiter(4);
   public SlewRateLimiter rfilter = new SlewRateLimiter(4);

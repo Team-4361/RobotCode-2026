@@ -13,19 +13,19 @@
         {
           "type": "named",
           "data": {
-            "name": "runIntake"
-          }
-        },
-        {
-          "type": "wait",
-          "data": {
-            "waitTime": 2.0
+            "name": "SnapToHub"
           }
         },
         {
           "type": "named",
           "data": {
-            "name": "stopIntake"
+            "name": "ShootCenter"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "stowHalf"
           }
         }
       ]

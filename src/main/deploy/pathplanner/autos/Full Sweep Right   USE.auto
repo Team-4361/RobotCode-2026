@@ -1,0 +1,55 @@
+{
+  "version": "2025.0",
+  "command": {
+    "type": "sequential",
+    "data": {
+      "commands": [
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Full Sweep Right 1"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "SnapToHub"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ShootCenter"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "full sweep right 2"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "SnapToHub"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "ShootCenter"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "stowHalf"
+          }
+        }
+      ]
+    }
+  },
+  "resetOdom": true,
+  "folder": null,
+  "choreoAuto": false
+}

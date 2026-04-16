@@ -29,6 +29,8 @@ public class Vision {
     boolean updateHeadingWithVision = true;
     boolean useFrontLeft  = true;
     boolean useFrontRight = true;
+    boolean useLeft = true;
+    boolean useRight = true;
 
     // --- AprilTag field layout ---
     AprilTagFieldLayout aprilTagFieldLayout =
@@ -37,6 +39,9 @@ public class Vision {
     // --- Cameras ---
     PhotonCamera frontLeftCam  = new PhotonCamera("frontLeftCam");
     PhotonCamera frontRightCam = new PhotonCamera("frontRightCam");
+    PhotonCamera leftCam   = new PhotonCamera("leftCam");
+    PhotonCamera rightCam   = new PhotonCamera("rightCam");
+
 
     // Timestamp of the last AprilTag observation
     public double timeATLastSeen = 0.0;
@@ -47,20 +52,38 @@ public class Vision {
     // --- Camera-to-robot transforms ---
     Transform3d frontLeftCamTransform = new Transform3d(
         new Translation3d(
-            Units.inchesToMeters(13.5),
-            Units.inchesToMeters(-8.75),
-            Units.inchesToMeters(19.0)
+            Units.inchesToMeters(12.5625),
+            Units.inchesToMeters(-10.75),
+            Units.inchesToMeters(15.0)
         ),
-        new Rotation3d(0, Units.degreesToRadians(-26.8), Units.degreesToRadians(0))
+        new Rotation3d(0, Units.degreesToRadians(-19.8), Units.degreesToRadians(0))
     );
 
     Transform3d frontRightCamTransform = new Transform3d(
         new Translation3d(
-            Units.inchesToMeters(15),
-            Units.inchesToMeters(13.9375),
-            Units.inchesToMeters(19.0625)
+            Units.inchesToMeters(11.5),
+            Units.inchesToMeters(10.4375),
+            Units.inchesToMeters(13.25)
         ),
         new Rotation3d(0, Units.degreesToRadians(-26.8), Units.degreesToRadians(0))
+    );
+//phil was here fr fr twin 
+//edwardo was here 
+    Transform3d leftCamTransform = new Transform3d(
+        new Translation3d(
+            Units.inchesToMeters(2.1111),
+            Units.inchesToMeters(-12.5625),
+            Units.inchesToMeters(27.875)
+        ),
+        new Rotation3d(0, Units.degreesToRadians(-1.8), Units.degreesToRadians(-90))
+    );
+    Transform3d rightCamTransform = new Transform3d(
+        new Translation3d(
+            Units.inchesToMeters(2.25),
+            Units.inchesToMeters(12.5625),
+            Units.inchesToMeters(27.875)
+        ),
+        new Rotation3d(0, Units.degreesToRadians(-2.4), Units.degreesToRadians(90))
     );
 
     // --- Pose estimators ---
@@ -69,16 +92,29 @@ public class Vision {
         PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
         frontLeftCamTransform
     );
-
-    PhotonPoseEstimator frontRightPoseEstimator = new PhotonPoseEstimator(
+        PhotonPoseEstimator frontRightPoseEstimator = new PhotonPoseEstimator(
         aprilTagFieldLayout,
         PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
         frontRightCamTransform
     );
 
+    PhotonPoseEstimator leftCamEstimator = new PhotonPoseEstimator(
+        aprilTagFieldLayout,
+        PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+        leftCamTransform
+    );
+
+        PhotonPoseEstimator rightCamEstimator = new PhotonPoseEstimator(
+        aprilTagFieldLayout,
+        PoseStrategy.MULTI_TAG_PNP_ON_COPROCESSOR,
+        rightCamTransform
+    );
+
     // --- SmartDashboard Field2d views ---
     Field2d photonField_frontLeft  = new Field2d();
     Field2d photonField_frontRight = new Field2d();
+    Field2d photonField_left   = new Field2d();
+    Field2d photonField_right   = new Field2d();
 
     // --- Simulation ---
     VisionSystemSim visionSim;
@@ -90,10 +126,13 @@ public class Vision {
 
         frontLeftPoseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
         frontRightPoseEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
+        leftCamEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
+        rightCamEstimator.setMultiTagFallbackStrategy(PoseStrategy.LOWEST_AMBIGUITY);
 
         SmartDashboard.putData("PhotonPose FrontLeft",  photonField_frontLeft);
         SmartDashboard.putData("PhotonPose FrontRight", photonField_frontRight);
-
+        SmartDashboard.putData("PhotonPose Left", photonField_left);
+        SmartDashboard.putData("PhotonPose Right", photonField_right);
         if (Robot.isSimulation()) {
             setupSimulation();
         }
@@ -143,6 +182,10 @@ public class Vision {
                         photonField_frontLeft,  visionMaxATDist);
         integrateCamera(useFrontRight, frontRightCam, frontRightPoseEstimator,
                         photonField_frontRight, visionMaxATDist);
+        integrateCamera(useLeft, leftCam, leftCamEstimator,
+                        photonField_left, visionMaxATDist);
+        integrateCamera(useRight, rightCam, rightCamEstimator,
+                        photonField_right, visionMaxATDist);
     }
 
     public void integrateCamera(

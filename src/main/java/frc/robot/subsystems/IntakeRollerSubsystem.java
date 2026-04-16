@@ -10,9 +10,12 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
 public class IntakeRollerSubsystem extends SubsystemBase {
 
+
+    
     private static final int    DEVICE_ID     = 15;       
-    private static final double INTAKE_SPEED  =  0.8;
-    private static final double OUTTAKE_SPEED = -0.8;
+    private static final double INTAKE_SPEED  =  1.0;
+    private static final double OUTTAKE_SPEED = -1.0;
+    private boolean RUNNING = false;
 
     private final TalonFX      kraken;
     private final DutyCycleOut dutyCycleRequest;
@@ -29,6 +32,8 @@ public class IntakeRollerSubsystem extends SubsystemBase {
 
     public void intake() {
         kraken.setControl(dutyCycleRequest.withOutput(INTAKE_SPEED));
+        RUNNING = true;
+
     }
 
     public void outtake() {
@@ -37,6 +42,7 @@ public class IntakeRollerSubsystem extends SubsystemBase {
 
     public void stop() {
         kraken.stopMotor();
+        RUNNING = false;
     }
 
 
@@ -62,6 +68,7 @@ public class IntakeRollerSubsystem extends SubsystemBase {
     @Override
     public void periodic() {
         SmartDashboard.putNumber("IntakeRoller/Output",  kraken.getMotorVoltage().getValueAsDouble());
+        SmartDashboard.putBoolean("IntakeRoller/IsRunning",  RUNNING);
         SmartDashboard.putNumber("IntakeRoller/Current", kraken.getSupplyCurrent().getValueAsDouble());
     }
-}
+}  

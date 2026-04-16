@@ -24,6 +24,7 @@ public class teleopController {
     public double xV = 0;
     public double yV = 0;
     public double rV = 0;
+    public boolean isOrbit = false;
 
     public SlewRateLimiter xfilter = new SlewRateLimiter(4);
     public SlewRateLimiter yfilter = new SlewRateLimiter(4);
@@ -42,14 +43,14 @@ public class teleopController {
     private boolean hubOrbitEnabled = false;
     private boolean orbitButtonWasPressed = false;   // for edge-detect toggle
 
-    /** Button index on joystickL that toggles hub-orbit mode. */
+    /** Button index on joystickL that toggles hub-orbit mode. */ 
     private static final int ORBIT_TOGGLE_BUTTON = 1;
 
     /**
      * The minimum distance (meters) the robot keeps from the hub centre
      * while orbit mode is active.
      */
-    private static final double HUB_KEEP_DISTANCE_M = 2.0;
+    private static final double HUB_KEEP_DISTANCE_M = 2.502154;
 
     /** P-gain for snapping to HUB_KEEP_DISTANCE_M (m/s per metre of error). */
     private static final double HUB_SNAP_GAIN = 4.0;
@@ -166,7 +167,7 @@ public class teleopController {
         // This runs ON TOP of whatever the driver is doing, so tangential
         // (left/right around the hub) movement is fully preserved.
         //
-        // error > 0  →  robot is inside the keep-distance, push out
+        // error > 0  →  robot is inside the keep-distance, push out      
         // error <= 0 →  robot is far enough, no correction needed
 
         // Strip ALL radial driver input — driver can only move tangentially.

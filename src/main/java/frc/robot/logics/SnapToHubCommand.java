@@ -16,7 +16,7 @@ public class SnapToHubCommand extends Command {
     // ── Tuning ────────────────────────────────────────────────────────────────
 
     /** Target distance from hub centre (metres). */
-    private static final double HUB_KEEP_DISTANCE_M  = 3.3688;
+    private static final double HUB_KEEP_DISTANCE_M  = 2.502154;
 
     /** P-gain for radial snap (m/s per metre of error). */
     private static final double HUB_SNAP_GAIN        = 4.0;
@@ -83,7 +83,7 @@ public class SnapToHubCommand extends Command {
 
         // ── Heading snap — face the hub ────────────────────────────────────
         Rotation2d desiredHeading = new Rotation2d(
-                Math.atan2(-unitAway.getY(), -unitAway.getX()) + Math.PI /2
+                Math.atan2(-unitAway.getY(), -unitAway.getX())
         );
         double headingError = MathUtil.angleModulus(
                 desiredHeading.minus(pose.getRotation()).getRadians()
@@ -121,7 +121,7 @@ public class SnapToHubCommand extends Command {
         double distanceError = Math.abs(distance - HUB_KEEP_DISTANCE_M);
 
         Rotation2d desiredHeading = new Rotation2d(
-                Math.atan2(-unitAway.getY(), -unitAway.getX()) + Math.PI /2
+                Math.atan2(-unitAway.getY(), -unitAway.getX())
         );
         double headingError = Math.abs(MathUtil.angleModulus(
                 desiredHeading.minus(pose.getRotation()).getRadians()
