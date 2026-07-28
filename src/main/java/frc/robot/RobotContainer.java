@@ -157,6 +157,17 @@ private Pose2d getShootTarget() {
             Commands.runOnce(this::zeroGyroAndReseed)
         );
     }
+
+    /**
+     * Gives other classes (e.g. Robot's teleopController, which is built
+     * after RobotContainer so this subsystem already exists) access to the
+     * shooter without exposing every subsystem or making them all static.
+     */
+    public ShooterSubsystem getShooter()
+    {
+        return shooter;
+    }
+
     //SIMULATION//
 
     private void configureFuelSim() {

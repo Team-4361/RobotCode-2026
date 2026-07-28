@@ -44,10 +44,11 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
 
   public Robot()
   {
-    teleopwow = new teleopController(joystickL, joystickR, xboxCommandJoystick);
     instance = this;
-   
-    
+    // NOTE: teleopwow is built in robotInit(), not here — it needs
+    // m_robotContainer's ShooterSubsystem (for the hub-orbit rev-shooter
+    // behavior), and m_robotContainer doesn't exist yet at this point in
+    // the constructor.
   }
 
   public static Robot getInstance()
@@ -64,6 +65,11 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
     // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
     // autonomous chooser on the dashboard.
     m_robotContainer = new RobotContainer();
+
+    // Built here (after m_robotContainer) so it can be handed the shooter
+    // subsystem — hub-orbit revs the shooter in teleop only.
+    teleopwow = new teleopController(joystickL, joystickR, xboxCommandJoystick,
+                                      m_robotContainer.getShooter());
 
     // Create a timer to disable motor brake a few seconds after disable.  This will let the robot stop
     // immediately when disabled, but then also let it be pushed more 

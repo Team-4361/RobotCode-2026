@@ -1,24 +1,21 @@
 package frc.robot.logics;
 
-import java.util.Optional;
-
-import edu.wpi.first.math.MathUtil;
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.RobotContainer;
 import frc.robot.Settings;
+import frc.robot.subsystems.ShooterSubsystem;
 
 public class teleopController {
 
     // ── Hardware ──────────────────────────────────────────────────────────────
     private CommandJoystick joystickL;
     private CommandJoystick joystickR;
+    private final ShooterSubsystem shooter;
 
     // ── Filtered outputs ──────────────────────────────────────────────────────
     public double xV = 0;
@@ -37,8 +34,16 @@ public class teleopController {
      *   • Never approach closer than HUB_KEEP_DISTANCE_M.
      *     If the driver tries to drive into the hub, the radial component
      *     of their input is clamped / reversed so the robot stays ~1 m out.
+     *   • Rev the shooter to RobotContainer.SHOOTER_REV_SPEED (see
+     *     orbitRevShooterCommand below) — teleop-only, SnapToHubCommand
+     *     (the autonomous version) never touches the shooter.
      *
      * Toggle with joystickL button 1 (change ORBIT_TOGGLE_BUTTON if needed).
+     *
+     * NOTE: this runs INLINE as an overlay at the end of drivePID() below —
+     * it is not a separate command/loop, so it never competes with the main
+     * drive update for a scheduler slot. The geometry itself is shared with
+     * SnapToHubCommand via HubAlignment so it's only implemented once.
      */
     private boolean hubOrbitEnabled = false;
     private boolean orbitButtonWasPressed = false;   // for edge-detect toggle
@@ -66,13 +71,24 @@ public class teleopController {
     /** Maximum rotational speed the heading controller will command (rad/s). */
     private static final double HEADING_MAX_RAD_S = 7.0;
 
+    /**
+     * Command that revs the shooter while hub-orbit is active. Scheduling it
+     * takes the shooter subsystem away from its default STOPP() command;
+     * cancelling it hands the subsystem back to that default automatically.
+     * Built once in the constructor so toggling doesn't allocate every press.
+     */
+    private final Command orbitRevShooterCommand;
+
     // ─────────────────────────────────────────────────────────────────────────
 
     public teleopController(CommandJoystick joyL,
                             CommandJoystick joyR,
-                            CommandXboxController xboxCommandJoystick) {
+                            CommandXboxController xboxCommandJoystick,
+                            ShooterSubsystem shooterSubsystem) {
         joystickL    = joyL;
         joystickR    = joyR;
+        shooter      = shooterSubsystem;
+        orbitRevShooterCommand = shooter.setSPEED(RobotContainer.SHOOTER_REV_SPEED);
     }
 
     // =========================================================================
@@ -84,8 +100,16 @@ public class teleopController {
         boolean orbitButtonNow = joystickL.button(ORBIT_TOGGLE_BUTTON).getAsBoolean();
         if (orbitButtonNow && !orbitButtonWasPressed) {
             hubOrbitEnabled = !hubOrbitEnabled;
+
+            // Rev the shooter in step with orbit mode — teleop only.
+            if (hubOrbitEnabled) {
+                orbitRevShooterCommand.schedule();
+            } else {
+                orbitRevShooterCommand.cancel(); // shooter falls back to its default STOPP()
+            }
         }
         orbitButtonWasPressed = orbitButtonNow;
+        isOrbit = hubOrbitEnabled;
 
         // ── 2. Read & filter joystick translation axes ─────────────────────
         double xSpeedJoystick = -joystickL.getRawAxis(1); // forward/back (inverted)
@@ -101,8 +125,7 @@ public class teleopController {
         rSpeedJoystick = rfilter.calculate(rSpeedJoystick);
 
         // ── 3. Alliance flip (field-centric) ───────────────────────────────
-        Optional<Alliance> alliance = DriverStation.getAlliance();
-        boolean isRed = alliance.isPresent() && alliance.get().equals(Alliance.Red);
+        boolean isRed = HubAlignment.isRedAlliance();
         if (isRed) {
             xSpeedJoystick = -xSpeedJoystick;
             ySpeedJoystick = -ySpeedJoystick;
@@ -121,7 +144,7 @@ public class teleopController {
         yV = yInput * maxV;
         rV = rInput * maxOmg;
 
-        // ── 6. Hub-orbit overlay ───────────────────────────────────────────
+        // ── 6. Hub-orbit overlay (inline, not a separate command) ──────────
         if (hubOrbitEnabled) {
             applyHubOrbit(isRed);
         }
@@ -140,74 +163,31 @@ public class teleopController {
      *   • The robot's front always faces the hub (rV overridden by P controller).
      *
      * All maths is in field-centric coordinates (same frame as drivebase.drive).
+     * Geometry itself comes from HubAlignment so it's computed once here and
+     * shared (not re-derived) with SnapToHubCommand's autonomous version.
      */
     private void applyHubOrbit(boolean isRed) {
 
-        // ── a. Current pose from YAGSL ────────────────────────────────────
-        Pose2d pose       = RobotContainer.drivebase.getPose();
-        Translation2d robotPos = pose.getTranslation();
+        Pose2d pose = RobotContainer.drivebase.getPose();
+        Translation2d hub = HubAlignment.allianceHub(isRed);
 
-        // ── b. Alliance hub centre ────────────────────────────────────────
-        Translation2d hub = isRed
-                ? RobotContainer.HUB_CENTER_RED
-                : RobotContainer.HUB_CENTER_BLUE;
-
-        // ── c. Hub→robot vector ───────────────────────────────────────────
-        Translation2d toRobot = robotPos.minus(hub);
-        double distance = toRobot.getNorm();
-
-        if (distance < 0.01) return; // safety guard
-
-        Translation2d unitAway = toRobot.div(distance); // unit vec pointing away from hub
-
-        // ── d. Distance correction velocity ──────────────────────────────
-        //
-        // If the robot is too close, add a correction velocity pushing it
-        // outward (away from hub). The further inside the limit, the stronger.
-        // This runs ON TOP of whatever the driver is doing, so tangential
-        // (left/right around the hub) movement is fully preserved.
-        //
-        // error > 0  →  robot is inside the keep-distance, push out      
-        // error <= 0 →  robot is far enough, no correction needed
+        HubAlignment.Snapshot snap = HubAlignment.compute(pose, hub, HUB_KEEP_DISTANCE_M);
+        if (snap == null) return; // robot is essentially on top of the hub — skip this tick
 
         // Strip ALL radial driver input — driver can only move tangentially.
         // The distance is controlled entirely by the snap correction below.
-        double radialV = xV * unitAway.getX() + yV * unitAway.getY();
-        xV -= radialV * unitAway.getX();
-        yV -= radialV * unitAway.getY();
+        double radialV = xV * snap.unitAway.getX() + yV * snap.unitAway.getY();
+        xV -= radialV * snap.unitAway.getX();
+        yV -= radialV * snap.unitAway.getY();
 
         // Snap correction: P-controller drives robot to exactly HUB_KEEP_DISTANCE_M.
-        // Positive error = too far away → move toward hub (negative unitAway).
-        // Negative error = too close    → move away from hub (positive unitAway).
-        // distanceError > 0 = too far  → need to move TOWARD hub = subtract unitAway
-        // distanceError < 0 = too close → need to move AWAY   = add unitAway
-        double distanceError = distance - HUB_KEEP_DISTANCE_M;
-        double snapSpeed = MathUtil.clamp(
-                HUB_SNAP_GAIN * distanceError,
-                -HUB_SNAP_MAX_SPEED,
-                 HUB_SNAP_MAX_SPEED
-        );
-        // Negate: positive error should pull inward (opposite of unitAway)
-        xV -= snapSpeed * unitAway.getX();
-        yV -= snapSpeed * unitAway.getY();
+        // distanceError > 0 (too far)  → pull inward  (subtract unitAway)
+        // distanceError < 0 (too close) → push outward (add unitAway)
+        double snapSpeed = HubAlignment.radialSnapSpeed(snap.distanceError, HUB_SNAP_GAIN, HUB_SNAP_MAX_SPEED);
+        xV -= snapSpeed * snap.unitAway.getX();
+        yV -= snapSpeed * snap.unitAway.getY();
 
-        // ── e. Heading P-controller — front of robot faces hub ────────────
-        //
-        // Desired heading = angle pointing FROM robot TOWARD hub
-        //                 = angle of (hub - robot) = angle of -unitAway
-
-        Rotation2d desiredHeading = new Rotation2d(
-                Math.atan2(-unitAway.getY(), -unitAway.getX())
-        );
-
-        double headingError = MathUtil.angleModulus(
-                desiredHeading.minus(pose.getRotation()).getRadians()
-        );
-
-        rV = MathUtil.clamp(
-                HEADING_P * headingError,
-                -HEADING_MAX_RAD_S,
-                 HEADING_MAX_RAD_S
-        );
+        // ── Heading P-controller — front of robot faces hub ────────────
+        rV = HubAlignment.headingSnapSpeed(snap.headingError, HEADING_P, HEADING_MAX_RAD_S);
     }
 }

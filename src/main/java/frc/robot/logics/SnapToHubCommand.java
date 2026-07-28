@@ -1,16 +1,19 @@
 package frc.robot.logics;
 
-import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.math.geometry.Pose2d;
-import edu.wpi.first.math.geometry.Rotation2d;
-import edu.wpi.first.math.geometry.Translation2d;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.RobotContainer;
 
-import java.util.Optional;
-
+/**
+ * Drives the robot to HUB_KEEP_DISTANCE_M from the alliance hub and squares
+ * it up to face the hub, then finishes.
+ *
+ * Shares its geometry (hub vector, distance error, heading error) with the
+ * teleop hub-orbit overlay via HubAlignment, so that math exists in exactly
+ * one place. Within a single scheduler pass, execute() and isFinished() are
+ * called back-to-back on the same tick — this now computes the snapshot
+ * once in execute() and reuses it in isFinished() instead of re-reading the
+ * pose and redoing the atan2/angleModulus work a second time.
+ */
 public class SnapToHubCommand extends Command {
 
     // ── Tuning ────────────────────────────────────────────────────────────────
@@ -40,6 +43,9 @@ public class SnapToHubCommand extends Command {
 
     // ─────────────────────────────────────────────────────────────────────────
 
+    /** Snapshot from the most recent execute() call, reused by isFinished(). */
+    private HubAlignment.Snapshot lastSnapshot = null;
+
     public SnapToHubCommand() {
         // Require drivebase so this blocks any concurrent PathPlanner command
         addRequirements(RobotContainer.drivebase);
@@ -47,52 +53,32 @@ public class SnapToHubCommand extends Command {
 
     @Override
     public void initialize() {
-        // Nothing needed — we calculate fresh every execute() from live pose
+        lastSnapshot = null;
     }
 
     @Override
     public void execute() {
-        Pose2d pose       = RobotContainer.drivebase.getPose();
-        Translation2d robotPos = pose.getTranslation();
+        HubAlignment.Snapshot snap = HubAlignment.compute(
+                RobotContainer.drivebase.getPose(),
+                HubAlignment.allianceHub(HubAlignment.isRedAlliance()),
+                HUB_KEEP_DISTANCE_M
+        );
+        lastSnapshot = snap;
 
-        // Pick alliance hub
-        Optional<Alliance> alliance = DriverStation.getAlliance();
-        boolean isRed = alliance.isPresent() && alliance.get() == Alliance.Red;
-        Translation2d hub = isRed
-                ? RobotContainer.HUB_CENTER_RED
-                : RobotContainer.HUB_CENTER_BLUE;
+        if (snap == null) {
+            // Degenerate: robot is on top of the hub — hold still rather than
+            // command garbage off a zero-length vector.
+            RobotContainer.drivebase.drive(0, 0, 0, true);
+            return;
+        }
 
-        // Hub→robot vector
-        Translation2d toRobot  = robotPos.minus(hub);
-        double        distance = toRobot.getNorm();
-        if (distance < 0.01) return;
-
-        Translation2d unitAway = toRobot.div(distance);
-
-        // ── Radial snap ───────────────────────────────────────────────────
         // distanceError > 0 → too far  → move toward hub (subtract unitAway)
         // distanceError < 0 → too close → move away    (add unitAway)
-        double distanceError = distance - HUB_KEEP_DISTANCE_M;
-        double snapSpeed = MathUtil.clamp(
-                HUB_SNAP_GAIN * distanceError,
-                -HUB_SNAP_MAX_SPEED,
-                 HUB_SNAP_MAX_SPEED
-        );
-        double xV = -snapSpeed * unitAway.getX();
-        double yV = -snapSpeed * unitAway.getY();
+        double snapSpeed = HubAlignment.radialSnapSpeed(snap.distanceError, HUB_SNAP_GAIN, HUB_SNAP_MAX_SPEED);
+        double xV = -snapSpeed * snap.unitAway.getX();
+        double yV = -snapSpeed * snap.unitAway.getY();
 
-        // ── Heading snap — face the hub ────────────────────────────────────
-        Rotation2d desiredHeading = new Rotation2d(
-                Math.atan2(-unitAway.getY(), -unitAway.getX())
-        );
-        double headingError = MathUtil.angleModulus(
-                desiredHeading.minus(pose.getRotation()).getRadians()
-        );
-        double rV = MathUtil.clamp(
-                HEADING_P * headingError,
-                -HEADING_MAX_RAD_S,
-                 HEADING_MAX_RAD_S
-        );
+        double rV = HubAlignment.headingSnapSpeed(snap.headingError, HEADING_P, HEADING_MAX_RAD_S);
 
         RobotContainer.drivebase.drive(xV, yV, rV, true);
     }
@@ -105,27 +91,10 @@ public class SnapToHubCommand extends Command {
 
     @Override
     public boolean isFinished() {
-        Pose2d pose       = RobotContainer.drivebase.getPose();
-        Translation2d robotPos = pose.getTranslation();
+        if (lastSnapshot == null) return false;
 
-        Optional<Alliance> alliance = DriverStation.getAlliance();
-        boolean isRed = alliance.isPresent() && alliance.get() == Alliance.Red;
-        Translation2d hub = isRed
-                ? RobotContainer.HUB_CENTER_RED
-                : RobotContainer.HUB_CENTER_BLUE;
-
-        Translation2d toRobot  = robotPos.minus(hub);
-        double        distance = toRobot.getNorm();
-        Translation2d unitAway = distance > 0.01 ? toRobot.div(distance) : new Translation2d(1, 0);
-
-        double distanceError = Math.abs(distance - HUB_KEEP_DISTANCE_M);
-
-        Rotation2d desiredHeading = new Rotation2d(
-                Math.atan2(-unitAway.getY(), -unitAway.getX())
-        );
-        double headingError = Math.abs(MathUtil.angleModulus(
-                desiredHeading.minus(pose.getRotation()).getRadians()
-        ));
+        double distanceError = Math.abs(lastSnapshot.distanceError);
+        double headingError  = Math.abs(lastSnapshot.headingError);
 
         return distanceError < DISTANCE_TOLERANCE_M
             && headingError  < HEADING_TOLERANCE_RAD;
