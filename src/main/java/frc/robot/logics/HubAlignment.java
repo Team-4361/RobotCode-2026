@@ -6,50 +6,49 @@ import edu.wpi.first.math.geometry.Rotation2d;
 import edu.wpi.first.math.geometry.Translation2d;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
+import frc.robot.Constants;
 import frc.robot.RobotContainer;
 
 import java.util.Optional;
 
-/**
- * Shared math for "face the hub + hold a set distance from it".
- *
- * Both the teleop hub-orbit overlay (teleopController) and the autonomous
- * SnapToHubCommand used to independently re-derive this same geometry
- * (hub vector, distance, desired heading, heading error). Centralizing it
- * here means:
- *   - it's computed once per call instead of being duplicated across files
- *   - SnapToHubCommand can cache one Snapshot per tick and reuse it in
- *     isFinished() instead of re-reading pose + redoing atan2/angleModulus
- *   - tuning/behavior changes only need to happen in one place
- */
 public final class HubAlignment {
 
     private HubAlignment() {}
 
+    // Cached from Constants so we only do the trig setup once.
+    private static final double SHOOTER_OFFSET_MAG_M = Math.hypot(
+        Constants.ShooterConstants.SHOOTER_FORWARD_OFFSET_M,
+        Constants.ShooterConstants.SHOOTER_LEFT_OFFSET_M);
+    private static final double SHOOTER_OFFSET_ANGLE_RAD = Math.atan2(
+        Constants.ShooterConstants.SHOOTER_LEFT_OFFSET_M,
+        Constants.ShooterConstants.SHOOTER_FORWARD_OFFSET_M);
+
     /** Immutable result of one alignment computation for a single loop tick. */
     public static final class Snapshot {
-        /** Unit vector pointing FROM the hub TOWARD the robot. */
+        /** Unit vector pointing FROM the hub TOWARD the robot's odometry center. */
         public final Translation2d unitAway;
-        /** Current distance from hub center (m). */
+        /** True shooter-exit-to-hub distance (m) — accounts for mount offset. */
         public final double distance;
         /** distance - keepDistance. Positive = too far, negative = too close. */
         public final double distanceError;
-        /** Heading that points the robot's front at the hub. */
+        /** Heading that points the SHOOTER (not just the chassis) at the hub. */
         public final Rotation2d desiredHeading;
         /** Wrapped heading error (rad), current heading -> desiredHeading. */
         public final double headingError;
+        /** Raw odometry-center-to-hub distance, for telemetry/reference. */
+        public final double centerDistance;
 
         Snapshot(Translation2d unitAway, double distance, double distanceError,
-                 Rotation2d desiredHeading, double headingError) {
+                 Rotation2d desiredHeading, double headingError, double centerDistance) {
             this.unitAway = unitAway;
             this.distance = distance;
             this.distanceError = distanceError;
             this.desiredHeading = desiredHeading;
             this.headingError = headingError;
+            this.centerDistance = centerDistance;
         }
     }
 
-    /** True if current alliance is Red (defaults to Blue if not yet reported). */
     public static boolean isRedAlliance() {
         Optional<Alliance> alliance = DriverStation.getAlliance();
         return alliance.isPresent() && alliance.get() == Alliance.Red;
@@ -60,29 +59,45 @@ public final class HubAlignment {
     }
 
     /**
-     * Computes the hub-relative geometry in one pass.
-     * Returns null if the robot is essentially on top of the hub
-     * (degenerate — nothing sane to command).
+     * Computes hub-relative geometry, correcting for the shooter's physical
+     * offset from the odometry-tracked center (see Constants.ShooterConstants).
+     * Returns null if the robot's center is essentially on top of the hub.
      */
     public static Snapshot compute(Pose2d pose, Translation2d hub, double keepDistanceM) {
         Translation2d toRobot = pose.getTranslation().minus(hub);
-        double distance = toRobot.getNorm();
-        if (distance < 0.01) return null;
+        double centerDistance = toRobot.getNorm();
+        if (centerDistance < 0.01) return null;
 
-        Translation2d unitAway = toRobot.div(distance);
-        Rotation2d desiredHeading = new Rotation2d(Math.atan2(-unitAway.getY(), -unitAway.getX()));
+        Translation2d unitAway = toRobot.div(centerDistance);
+
+        // Heading that points the CHASSIS CENTER at the hub (old behavior).
+        double centerHeadingRad = Math.atan2(-unitAway.getY(), -unitAway.getX());
+
+        // Correct for the shooter's mount offset so the actual shot — not just
+        // the centerline — is aimed at the hub. Solves the triangle formed by
+        // the odometry center, the shooter exit point, and the hub.
+        double beta = 0.0;
+        double shooterDistance = centerDistance;
+        if (SHOOTER_OFFSET_MAG_M > 1e-6) {
+            double asinArg = MathUtil.clamp(
+                (SHOOTER_OFFSET_MAG_M * Math.sin(SHOOTER_OFFSET_ANGLE_RAD)) / centerDistance,
+                -1.0, 1.0);
+            beta = Math.asin(asinArg);
+            shooterDistance = centerDistance * Math.cos(beta)
+                - SHOOTER_OFFSET_MAG_M * Math.cos(SHOOTER_OFFSET_ANGLE_RAD);
+        }
+
+        Rotation2d desiredHeading = new Rotation2d(centerHeadingRad - beta);
         double headingError = MathUtil.angleModulus(desiredHeading.minus(pose.getRotation()).getRadians());
-        double distanceError = distance - keepDistanceM;
+        double distanceError = shooterDistance - keepDistanceM;
 
-        return new Snapshot(unitAway, distance, distanceError, desiredHeading, headingError);
+        return new Snapshot(unitAway, shooterDistance, distanceError, desiredHeading, headingError, centerDistance);
     }
 
-    /** Radial (toward/away from hub) correction speed, positive = away from hub. */
     public static double radialSnapSpeed(double distanceError, double gain, double maxSpeed) {
         return MathUtil.clamp(gain * distanceError, -maxSpeed, maxSpeed);
     }
 
-    /** Rotational correction speed to close headingError. */
     public static double headingSnapSpeed(double headingError, double gain, double maxSpeed) {
         return MathUtil.clamp(gain * headingError, -maxSpeed, maxSpeed);
     }

@@ -38,6 +38,24 @@ public final class Constants
     // Hold time on motor brakes when disabled
     public static final double WHEEL_LOCK_TIME = 10; // seconds
   }
+  
+
+
+  public static class ShooterConstants
+  {
+      /**
+       * Horizontal offset of the shooter's exit point from the swerve
+       * odometry center (the drivetrain's geometric centroid), in the
+       * ROBOT's frame: +x = forward, +y = left. Meters.
+       *
+       * MEASURE THIS ON THE REAL ROBOT (tape measure or CAD) — this is
+       * what makes auto-align aim the actual shot at the hub instead of
+       * just the chassis centerline.
+       */
+      public static final double SHOOTER_FORWARD_OFFSET_M = Units.inchesToMeters(0.0);
+      public static final double SHOOTER_LEFT_OFFSET_M    = Units.inchesToMeters(0.0);
+  }
+
 
   public static class OperatorConstants
   {
