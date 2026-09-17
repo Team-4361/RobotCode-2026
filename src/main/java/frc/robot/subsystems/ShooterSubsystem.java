@@ -6,10 +6,13 @@ import com.ctre.phoenix6.SignalLogger;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
-import com.ctre.phoenix6.controls.DutyCycleOut;
+import com.ctre.phoenix6.controls.Follower;
 import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
+import com.ctre.phoenix6.signals.MotorAlignmentValue;
+
+import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.units.measure.AngularVelocity;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -22,16 +25,24 @@ import frc.robot.util.TunableNumber;
 /**
  * Shooter subsystem — two Krakens on one flywheel, native Phoenix 6, no YAMS.
  *
- * NO Follower CLASS: instead of linking the follower Kraken via CTRE's
- * Follower control request (which was causing IDE/classpath resolution
- * issues), both motors are commanded directly and explicitly every time,
- * in every method. This is functionally equivalent — just less "magic" —
- * and has the side benefit that both motors show independent, explicit
- * commands in Phoenix Tuner X rather than one silently mirroring the other.
+ * FOLLOWER CONTROL (fixed): the follower Kraken now uses CTRE's native
+ * {@link Follower} control request instead of running its own independent
+ * VelocityVoltage closed loop off its own encoder. Two independent velocity
+ * loops on the same physical shaft can fight each other on any encoder
+ * mismatch, belt slip, or backlash — each one trying to converge its own
+ * shaft reading to the same RPM independently, rather than one motor simply
+ * mirroring the other's output like it should. The Follower request is a
+ * single field, built ONCE in the constructor and applied there — matching
+ * the "linked at construction" principle: if you only wire the follower
+ * during specific control-mode calls (e.g. only in setTargetRPM), it goes
+ * uncontrolled during any other call path (legacy setSPEED, SysId, etc).
+ * Building the request in the constructor means the follower automatically
+ * mirrors the primary across EVERY control mode without touching it again.
  *
- * FOLLOWER_INVERTED controls whether the second Kraken needs the opposite
- * sign to spin the correct physical direction (set true if it's mounted
- * mechanically opposite the primary on the same shaft/belt).
+ * FOLLOWER_INVERTED still controls whether the second Kraken needs to spin
+ * opposite the primary (mounted mechanically opposite on the same
+ * shaft/belt) — this maps directly onto Follower's opposeMasterDirection
+ * parameter, so flip that one flag if it's mounted backwards.
  *
  * BACKWARDS COMPATIBLE: setSPEED, set, revShooter, STOPP, stop, speeeed,
  * getVelocity, isAtTargetSpeed, getTargetRPM, sysId commands all keep their
@@ -42,7 +53,6 @@ public class ShooterSubsystem extends SubsystemBase {
     // ── CAN IDs (unchanged) ─────────────────────────────────────────────────
     private static final int PRIMARY_CAN_ID  = 13;
     private static final int FOLLOWER_CAN_ID = 14;
-    private static final DutyCycleOut zero = new DutyCycleOut(0);
 
     /** Rotations of motor per rotation of flywheel. Update if geared. */
     private static final double GEAR_RATIO = 1.0;
@@ -50,11 +60,10 @@ public class ShooterSubsystem extends SubsystemBase {
     /**
      * Set true if the follower Kraken is mounted physically opposite the
      * primary (needs to spin the other way to push the flywheel the same
-     * direction). Flip this — do NOT use motor-invert config for this,
-     * keep it isolated to this one flag so it's easy to find and correct.
+     * direction). This is CTRE's Follower.opposeMasterDirection — flip this
+     * single flag, do NOT touch motor-invert config for this.
      */
     private static final boolean FOLLOWER_INVERTED = false;
-    private static final double FOLLOWER_SIGN = FOLLOWER_INVERTED ? -1.0 : 1.0;
 
     // ── Power management ─────────────────────────────────────────────────
     private static final double STATOR_CURRENT_LIMIT_A       = 80.0;
@@ -65,10 +74,25 @@ public class ShooterSubsystem extends SubsystemBase {
     private final TalonFX primaryKraken  = new TalonFX(PRIMARY_CAN_ID);
     private final TalonFX followerKraken = new TalonFX(FOLLOWER_CAN_ID);
 
-    private final VelocityVoltage velocityRequestPrimary  = new VelocityVoltage(0).withSlot(0);
-    private final VelocityVoltage velocityRequestFollower = new VelocityVoltage(0).withSlot(0);
-    private final VoltageOut      m_voltReq               = new VoltageOut(0.0);
+    // Only the PRIMARY ever gets a closed-loop / voltage / duty-cycle request
+    // built and sent — the follower request below is applied ONCE and then
+    // the follower firmware handles mirroring on its own from then on.
+    private final VelocityVoltage velocityRequest = new VelocityVoltage(0).withSlot(0);
+    private final VoltageOut      m_voltReq       = new VoltageOut(0.0);
 
+    /**
+     * Built once, applied once in the constructor. After that, the follower
+     * Kraken mirrors whatever control request is sent to the primary —
+     * VelocityVoltage, VoltageOut, DutyCycleOut, all of it — entirely at the
+     * firmware/CAN level. This field only exists so we have a single named
+     * place documenting the relationship; it is never re-applied per-call.
+     */
+    private final Follower followerRequest = new Follower(
+        PRIMARY_CAN_ID,
+        FOLLOWER_INVERTED
+            ? MotorAlignmentValue.Opposed
+            : MotorAlignmentValue.Aligned
+    );
     private double targetRPM = 0.0;
 
     // ── Live-tunable PID/FF gains for the closed-loop RPM path ─────────────
@@ -79,6 +103,8 @@ public class ShooterSubsystem extends SubsystemBase {
     private final TunableNumber tKV = new TunableNumber("Shooter/Tuning/kV", 0.089836);
     private final TunableNumber tKA = new TunableNumber("Shooter/Tuning/kA", 0.014557);
 
+    // SysId only ever talks to the primary — the follower request already
+    // applied in the constructor takes care of mirroring the voltage step.
     private final SysIdRoutine sysIdRoutine = new SysIdRoutine(
         new SysIdRoutine.Config(
             null,
@@ -86,10 +112,7 @@ public class ShooterSubsystem extends SubsystemBase {
             null,
             state -> SignalLogger.writeString("ShooterSysIdState", state.toString())),
         new SysIdRoutine.Mechanism(
-            volts -> {
-                primaryKraken.setControl(m_voltReq.withOutput(volts.in(Volts)));
-                followerKraken.setControl(m_voltReq.withOutput(FOLLOWER_SIGN * volts.in(Volts)));
-            },
+            volts -> primaryKraken.setControl(m_voltReq.withOutput(volts.in(Volts))),
             null,
             this));
 
@@ -112,16 +135,20 @@ public class ShooterSubsystem extends SubsystemBase {
 
         primaryKraken.getConfigurator().apply(primaryConfig);
 
-        // Follower gets the SAME PID/FF gains and current limits as the
-        // primary — it runs its own independent closed loop on its own
-        // encoder rather than blindly mirroring, so if it's mechanically
-        // sound it converges to the same RPM as the primary.
+        // The follower still gets its own current-limit config — current
+        // limits are enforced per-device by firmware regardless of which
+        // motor is "leading" the control loop, so this isn't redundant with
+        // the Follower request above (which only governs output, not limits).
         TalonFXConfiguration followerConfig = new TalonFXConfiguration();
         followerConfig.CurrentLimits = primaryConfig.CurrentLimits;
-        followerConfig.Slot0 = primaryConfig.Slot0;
-        followerConfig.OpenLoopRamps.VoltageOpenLoopRampPeriod = 0.25;
-        followerConfig.ClosedLoopRamps.VoltageClosedLoopRampPeriod = 0.25;
         followerKraken.getConfigurator().apply(followerConfig);
+
+        // Apply the Follower request ONCE, here in the constructor, so the
+        // follower mirrors the primary across every control mode this
+        // subsystem ever uses — legacy duty-cycle, new velocity control,
+        // and SysId voltage steps alike — without needing to be touched
+        // again at any other call site.
+        followerKraken.setControl(followerRequest);
     }
 
     // =========================================================================
@@ -137,15 +164,13 @@ public class ShooterSubsystem extends SubsystemBase {
         return this.run(() -> setTargetRPM(targetRPM));
     }
 
-    /** Legacy open-loop duty-cycle drive — now commands both motors explicitly. */
+    /** Legacy open-loop duty-cycle drive — commands only the primary; the follower mirrors it automatically. */
     public void changeShooterSpeed(double speed) {
-        primaryKraken.setControl(new DutyCycleOut(speed));
-        followerKraken.setControl(new DutyCycleOut(FOLLOWER_SIGN * speed));
+        primaryKraken.set(speed);
     }
 
     public void stopShooterSpeed() {
-        primaryKraken.setControl(new DutyCycleOut(0));
-        followerKraken.setControl(new DutyCycleOut(0));
+        primaryKraken.set(0);
     }
 
     public Command setSPEED(double speed) {
@@ -189,14 +214,14 @@ public class ShooterSubsystem extends SubsystemBase {
     }
 
     // =========================================================================
-    //  NEW — additive closed-loop RPM control. Commands BOTH motors directly.
+    //  NEW — additive closed-loop RPM control. Commands only the primary;
+    //  the follower request applied in the constructor mirrors it.
     // =========================================================================
 
     public void setTargetRPM(double rpm) {
         targetRPM = rpm;
         double motorRotPerSec = (rpm / 60.0) * GEAR_RATIO;
-        primaryKraken.setControl(velocityRequestPrimary.withVelocity(motorRotPerSec));
-        followerKraken.setControl(velocityRequestFollower.withVelocity(FOLLOWER_SIGN * motorRotPerSec));
+        primaryKraken.setControl(velocityRequest.withVelocity(motorRotPerSec));
     }
 
     public Command setRPMCommand(double rpm) {
@@ -219,8 +244,8 @@ public class ShooterSubsystem extends SubsystemBase {
             Slot0Configs newSlot0 = new Slot0Configs()
                 .withKP(tKP.get()).withKI(tKI.get()).withKD(tKD.get())
                 .withKS(tKS.get()).withKV(tKV.get()).withKA(tKA.get());
+            // Only the primary runs closed-loop, so only it needs new gains.
             primaryKraken.getConfigurator().apply(newSlot0);
-            followerKraken.getConfigurator().apply(newSlot0);
         }
 
         SmartDashboard.putNumber("Shooter/RPM",        getVelocity().in(RPM));
@@ -231,6 +256,15 @@ public class ShooterSubsystem extends SubsystemBase {
         SmartDashboard.putNumber("Shooter/Stator Current (A)", primaryKraken.getStatorCurrent().getValueAsDouble());
         SmartDashboard.putNumber("Shooter/Bus Voltage (V)",    primaryKraken.getSupplyVoltage().getValueAsDouble());
         SmartDashboard.putNumber("Shooter/Follower Current (A)", followerKraken.getSupplyCurrent().getValueAsDouble());
+
+        Logger.recordOutput("Shooter/RPM",           getVelocity().in(RPM));
+        Logger.recordOutput("Shooter/FollowerRPM",   followerKraken.getVelocity().getValue().in(RPM));
+        Logger.recordOutput("Shooter/TargetRPM",     targetRPM);
+        Logger.recordOutput("Shooter/AtTargetSpeed", isAtTargetSpeed(75));
+        Logger.recordOutput("Shooter/SupplyCurrentA", primaryKraken.getSupplyCurrent().getValueAsDouble());
+        Logger.recordOutput("Shooter/StatorCurrentA", primaryKraken.getStatorCurrent().getValueAsDouble());
+        Logger.recordOutput("Shooter/BusVoltageV",    primaryKraken.getSupplyVoltage().getValueAsDouble());
+
     }
 
     private boolean isRedAlliance() {

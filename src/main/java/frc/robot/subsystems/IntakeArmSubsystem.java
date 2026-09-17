@@ -12,6 +12,8 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
+import org.littletonrobotics.junction.Logger;
+
 public class IntakeArmSubsystem extends SubsystemBase {
 
     // --- Constants ---
@@ -165,9 +167,17 @@ public Command deployCommandAuto() {
         SmartDashboard.putNumber("IntakeArm/Leader Current",   leader.getOutputCurrent());
         SmartDashboard.putNumber("IntakeArm/Follower Current", follower.getOutputCurrent());
 
+
+        Logger.recordOutput("IntakeArm/PositionRotations", getPosition());
+        Logger.recordOutput("IntakeArm/Setpoint",          pid.getSetpoint());
+        Logger.recordOutput("IntakeArm/AtSetpoint",        atSetpoint());
+        Logger.recordOutput("IntakeArm/Deployed",          getPosition() > DEPLOYED_POSITION / 2.0);
+        Logger.recordOutput("IntakeArm/LeaderCurrentA",    leader.getOutputCurrent());
+        Logger.recordOutput("IntakeArm/FollowerCurrentA",  follower.getOutputCurrent());
+
         if(atSetpoint()) {
             stop();
-            }
+        }
 
 
     }

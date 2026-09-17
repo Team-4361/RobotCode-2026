@@ -26,6 +26,7 @@ import com.pathplanner.lib.path.PathPlannerPath;
 import com.pathplanner.lib.util.DriveFeedforwards;
 import com.pathplanner.lib.util.swerve.SwerveSetpoint;
 import com.pathplanner.lib.util.swerve.SwerveSetpointGenerator;
+import org.littletonrobotics.junction.Logger;
 
 import edu.wpi.first.math.controller.SimpleMotorFeedforward;
 import edu.wpi.first.math.geometry.Pose2d;
@@ -124,10 +125,15 @@ public class SwerveSubsystem extends SubsystemBase
                                              Rotation2d.fromDegrees(0)));
   }
 
-  @Override
-  public void periodic()
-  {
-  }
+@Override
+public void periodic()
+{
+  Logger.recordOutput("Drive/Pose", getPose());
+  Logger.recordOutput("Drive/HeadingDegrees", getHeading().getDegrees());
+  Logger.recordOutput("Drive/RobotRelativeSpeeds", getRobotVelocity());
+  Logger.recordOutput("Drive/FieldRelativeSpeeds", getFieldVelocity());
+  Logger.recordOutput("Drive/ModuleStates", swerveDrive.getStates());
+}
 
   @Override
   public void simulationPeriodic()

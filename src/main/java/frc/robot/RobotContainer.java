@@ -28,6 +28,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import frc.robot.logics.ControlsLogger;
 import frc.robot.logics.SnapToHubCommand;
 import frc.robot.logics.Vision;
 import frc.robot.subsystems.AgitatorSubsystem;
@@ -70,6 +71,13 @@ public class RobotContainer
     final CommandXboxController operatorXbox = new CommandXboxController(2);
     final CommandXboxController testXbox     = new CommandXboxController(3);
 
+    //Logging for controls
+    private final ControlsLogger controlsLogger =
+        new ControlsLogger(joystickL, joystickR, operatorXbox, null);
+
+    public void updateControls() {
+        controlsLogger.periodic();
+}
     // ========== SUBSYSTEMS ==========
     public final static SwerveSubsystem drivebase = new SwerveSubsystem(
         new File(Filesystem.getDeployDirectory(), "swerve/neo"));

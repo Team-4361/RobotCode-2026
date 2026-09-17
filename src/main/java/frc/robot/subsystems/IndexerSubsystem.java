@@ -10,6 +10,8 @@ import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 
+import org.littletonrobotics.junction.Logger;
+
 public class IndexerSubsystem extends SubsystemBase {
     
     private final SparkFlex sparkFlex;
@@ -48,6 +50,9 @@ public class IndexerSubsystem extends SubsystemBase {
         // This method will be called once per scheduler run
         // Add any telemetry or monitoring here if needed
         SmartDashboard.putNumber("Indexer RPM", encoder.getVelocity());
+
+        Logger.recordOutput("Indexer/RPM", encoder.getVelocity());
+        Logger.recordOutput("Indexer/Running", encoder.getVelocity() != 0);
     }
 }
 

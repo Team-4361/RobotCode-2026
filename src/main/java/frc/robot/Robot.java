@@ -1,30 +1,26 @@
-// Copyright (c) FIRST and other WPILib contributors.
-// Open Source Software; you can modify and/or share it under the terms of
-// the WPILib BSD license file in the root directory of this project.
-
 package frc.robot;
+
+import org.littletonrobotics.junction.LogFileUtil;
+import org.littletonrobotics.junction.LoggedRobot;
+import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.networktables.NT4Publisher;
+import org.littletonrobotics.junction.wpilog.WPILOGReader;
+import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 import edu.wpi.first.math.filter.SlewRateLimiter;
 import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.RobotBase;
-import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
-import frc.robot.logics.teleopController;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import frc.robot.logics.teleopController;
 
-/**
- * The VM is configured to automatically run this class, and to call the functions corresponding to each mode, as
- * described in the TimedRobot documentation. If you change the name of this class or the package after creating this
- * project, you must also update the build.gradle file in the project.
- */
-public class Robot extends TimedRobot
+public class Robot extends LoggedRobot   // <-- was TimedRobot
 {
   final CommandJoystick joystickL = new CommandJoystick(0);
   final CommandJoystick joystickR = new CommandJoystick(1);
-final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
+  final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
   public double xV = 0;
   public double yV = 0;
   public double rV = 0;
@@ -32,23 +28,17 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
   public SlewRateLimiter xfilter = new SlewRateLimiter(4);
   public SlewRateLimiter yfilter = new SlewRateLimiter(4);
   public SlewRateLimiter rfilter = new SlewRateLimiter(4);
-    Thread m_visionThread;
+  Thread m_visionThread;
   public teleopController teleopwow;
 
-  private static Robot   instance;
-  private        Command m_autonomousCommand;
-
+  private static Robot instance;
+  private Command m_autonomousCommand;
   private RobotContainer m_robotContainer;
-
   private Timer disabledTimer;
 
   public Robot()
   {
     instance = this;
-    // NOTE: teleopwow is built in robotInit(), not here — it needs
-    // m_robotContainer's ShooterSubsystem (for the hub-orbit rev-shooter
-    // behavior), and m_robotContainer doesn't exist yet at this point in
-    // the constructor.
   }
 
   public static Robot getInstance()
@@ -56,23 +46,42 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
     return instance;
   }
 
-  /**
-   * This function is run when the robot is first started up and should be used for any initialization code.
-   */
+  public static final boolean REPLAY_MODE = false; // flip this on manually when replaying
   @Override
   public void robotInit()
   {
-    // Instantiate our RobotContainer.  This will perform all our button bindings, and put our
-    // autonomous chooser on the dashboard.
+    // ---- AdvantageKit setup: do this before anything else ----
+    Logger.recordMetadata("ProjectName", "2026Robot");
+    Logger.recordMetadata("GitSHA", edu.wpi.first.wpilibj.util.WPILibVersion.Version);
+
+    if (isReal())
+    {
+      Logger.addDataReceiver(new WPILOGWriter("/U"));
+      Logger.addDataReceiver(new NT4Publisher());
+    }
+    else if (REPLAY_MODE)
+    {
+      setUseTiming(false);
+      String logPath = LogFileUtil.findReplayLog();
+      Logger.setReplaySource(new WPILOGReader(logPath));
+      Logger.addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_sim")));
+    }
+    else
+    {
+      // Normal live simulation
+      Logger.addDataReceiver(new NT4Publisher());
+      Logger.addDataReceiver(new WPILOGWriter(""));
+    }
+
+
+    Logger.start();
+    // ------------------------------------------------------------
+
     m_robotContainer = new RobotContainer();
 
-    // Built here (after m_robotContainer) so it can be handed the shooter
-    // subsystem — hub-orbit revs the shooter in teleop only.
     teleopwow = new teleopController(joystickL, joystickR, xboxCommandJoystick,
                                       m_robotContainer.getShooter());
 
-    // Create a timer to disable motor brake a few seconds after disable.  This will let the robot stop
-    // immediately when disabled, but then also let it be pushed more 
     disabledTimer = new Timer();
 
     if (isSimulation())
@@ -81,27 +90,20 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
     }
   }
 
-  /**
-   * This function is called every 20 ms, no matter the mode. Use this for items like diagnostics that you want ran
-   * during disabled, autonomous, teleoperated and test.
-   *
-   * <p>This runs after the mode specific periodic functions, but before LiveWindow and
-   * SmartDashboard integrated updating.
-   */
   @Override
   public void robotPeriodic()
   {
-    // Runs the Scheduler.  This is responsible for polling buttons, adding newly-scheduled
-    // commands, running already-scheduled commands, removing finished or interrupted commands,
-    // and running subsystem periodic() methods.  This must be called from the robot's periodic
-    // block in order for anything in the Command-based framework to work.
     CommandScheduler.getInstance().run();
     m_robotContainer.updateVision();
+
+    //Not need I think, have to check if this is needed for logging controls or if advantagekit already does it.
+   // m_robotContainer.updateControls(); 
+
+    Logger.recordOutput("General/MatchTimeSeconds", DriverStation.getMatchTime());
+    Logger.recordOutput("General/BatteryVoltage",
+          edu.wpi.first.wpilibj.RobotController.getBatteryVoltage());
   }
 
-  /**
-   * This function is called once each time the robot enters Disabled mode.
-   */
   @Override
   public void disabledInit()
   {
@@ -109,7 +111,7 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
     disabledTimer.reset();
     disabledTimer.start();
   }
-  
+
   @Override
   public void disabledPeriodic()
   {
@@ -121,28 +123,18 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
     }
   }
 
-  /**
-   * This autonomous runs the autonomous command selected by your {@link RobotContainer} class.
-   */
   @Override
   public void autonomousInit()
   {
     m_robotContainer.setMotorBrake(true);
     m_autonomousCommand = m_robotContainer.getAutonomousCommand();
-
-    //Print the selected autonomous command upon autonomous init
     System.out.println("Auto selected: " + m_autonomousCommand);
-
-    // schedule the autonomous command selected in the autoChooser
     if (m_autonomousCommand != null)
     {
       CommandScheduler.getInstance().schedule(m_autonomousCommand);
     }
   }
 
-  /**
-   * This function is called periodically during autonomous.
-   */
   @Override
   public void autonomousPeriodic()
   {
@@ -151,11 +143,6 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
   @Override
   public void teleopInit()
   {
-    // This makes sure that the autonomous stops running when
-    // teleop starts running. If you want the autonomous to
-    // continue until interrupted by another command, remove
-    // this line or comment it out.=
-    
     if (m_autonomousCommand != null)
     {
       m_autonomousCommand.cancel();
@@ -163,53 +150,33 @@ final CommandXboxController xboxCommandJoystick = new CommandXboxController(3);
     {
       CommandScheduler.getInstance().cancelAll();
     }
-    
-
-    
   }
 
-  /**
-   * This function is called periodically during operator control.
-   */
   @Override
   public void teleopPeriodic()
   {
-
     teleopwow.drivePID();
-
   }
 
   @Override
   public void testInit()
   {
-    // Cancels all running commands at the start of test mode.
     CommandScheduler.getInstance().cancelAll();
   }
 
-  /**
-   * This function is called periodically during test mode.
-   */
   @Override
   public void testPeriodic()
   {
   }
 
-  /**
-   * This function is called once when the robot is first started up.
-   */
   @Override
   public void simulationInit()
   {
   }
 
-  /**
-   * This function is called periodically whilst in simulation.
-   */
   @Override
   public void simulationPeriodic()
   {
-
-            m_robotContainer.fuelSim.updateSim();
-
+    m_robotContainer.fuelSim.updateSim();
   }
 }

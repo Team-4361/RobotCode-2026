@@ -11,10 +11,13 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 
+import org.littletonrobotics.junction.Logger;
+
 public class AgitatorSubsystem extends SubsystemBase
 {
         private final SparkFlex sparkFlex;
 
+        private double lastCommandedSpeed = 0;
 
     public AgitatorSubsystem()
     {
@@ -28,9 +31,18 @@ public class AgitatorSubsystem extends SubsystemBase
 
     public void changeAgitatorSpeed (double vortexSpeed) {
         sparkFlex.set(vortexSpeed);
+        lastCommandedSpeed = vortexSpeed;
     }
     public void stopAgitator () {
         sparkFlex.set(0);
+        lastCommandedSpeed = 0;
+    }
+
+    @Override
+    public void periodic() {
+        Logger.recordOutput("Agitator/CommandedSpeed", lastCommandedSpeed);
+        Logger.recordOutput("Agitator/Running", lastCommandedSpeed != 0);
+        Logger.recordOutput("Agitator/OutputCurrentA", sparkFlex.getOutputCurrent());
     }
 
         // Command to run the motor at a specified speed
