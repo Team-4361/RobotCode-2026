@@ -6,10 +6,14 @@ import edu.wpi.first.math.geometry.Rotation3d;
 import edu.wpi.first.math.geometry.Transform3d;
 import edu.wpi.first.math.geometry.Translation3d;
 import edu.wpi.first.math.util.Units;
+import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import frc.robot.subsystems.swerveDrive.SwerveSubsystem;
+
+import java.io.File;
+import java.io.IOException;
 import java.util.Optional;
 import org.photonvision.simulation.SimCameraProperties;
 import frc.robot.Robot;
@@ -33,9 +37,18 @@ public class Vision {
     boolean useRight = true;
 
     // --- AprilTag field layout ---
-    AprilTagFieldLayout aprilTagFieldLayout =
-        AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
+AprilTagFieldLayout aprilTagFieldLayout = loadCustomFieldLayout();
 
+    private static AprilTagFieldLayout loadCustomFieldLayout() {
+        try {
+            return new AprilTagFieldLayout(
+                new File(Filesystem.getDeployDirectory(),
+                        "apriltags/2026-robocon-welded-photonvision-wpilib-apriltag-map.json").toPath());
+        } catch (IOException e) {
+            throw new RuntimeException("Failed to load custom AprilTag field layout", e);
+        }
+    }
+    
     // --- Cameras ---
     PhotonCamera frontLeftCam  = new PhotonCamera("frontLeftCam");
     PhotonCamera frontRightCam = new PhotonCamera("frontRightCam");
