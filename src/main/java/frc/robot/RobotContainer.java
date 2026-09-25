@@ -28,6 +28,7 @@ import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import frc.robot.logics.ControlsLogger;
 import frc.robot.logics.SnapToHubCommand;
 import frc.robot.logics.Vision;
@@ -376,8 +377,29 @@ NamedCommands.registerCommand("stowIntake",
 
         if (DriverStation.isTest())
         {
-            // test mode bindings here if needed
-        }
+          joystickR.button(5).onTrue(Commands.runOnce(this::zeroGyroAndReseed));
+
+
+            // drivebase.setDefaultCommand(teleopFlightDriveCommand);
+
+            
+            
+            operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+            operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+            operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
+            operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+            operatorXbox.rightTrigger(0.3).toggleOnTrue(intakeRoller.intakeCommand());
+            operatorXbox.leftTrigger(0.3).whileTrue(intakeRoller.outtakeCommand());
+            operatorXbox.povUp().whileTrue(intakeArm.manualCommand());
+            operatorXbox.povDown().whileTrue(intakeArm.manualCommandDown());
+        
+
+            // ── Operator: Shoot ──────────────────────────────────────────────────
+            operatorXbox.rightBumper().whileTrue(shootWithFeedCommand());
+            operatorXbox.leftBumper().whileTrue(shooter.setSPEED(SHOOTER_REV_SPEED));
+
+            
+        }        
         else
         {
 
