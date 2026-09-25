@@ -72,12 +72,12 @@ public class RobotContainer
     final CommandXboxController testXbox     = new CommandXboxController(3);
 
     //Logging for controls
-    private final ControlsLogger controlsLogger =
-        new ControlsLogger(joystickL, joystickR, operatorXbox, null);
+    // private final ControlsLogger controlsLogger =
+    //     new ControlsLogger(joystickL, joystickR, operatorXbox, null);
 
-    public void updateControls() {
-        controlsLogger.periodic();
-}
+//     public void updateControls() {
+//         controlsLogger.periodic();
+// }
     // ========== SUBSYSTEMS ==========
     public final static SwerveSubsystem drivebase = new SwerveSubsystem(
         new File(Filesystem.getDeployDirectory(), "swerve/neo"));
