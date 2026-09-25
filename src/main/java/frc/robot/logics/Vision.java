@@ -43,12 +43,12 @@ AprilTagFieldLayout aprilTagFieldLayout = loadCustomFieldLayout();
         try {
             return new AprilTagFieldLayout(
                 new File(Filesystem.getDeployDirectory(),
-                        "apriltags/2026-robocon-welded-photonvision-wpilib-apriltag-map.json").toPath());
+                        "2026-robocon-welded-photonvision-wpilib-apriltag-map.json").toPath());
         } catch (IOException e) {
             throw new RuntimeException("Failed to load custom AprilTag field layout", e);
         }
     }
-    
+
     // --- Cameras ---
     PhotonCamera frontLeftCam  = new PhotonCamera("frontLeftCam");
     PhotonCamera frontRightCam = new PhotonCamera("frontRightCam");
