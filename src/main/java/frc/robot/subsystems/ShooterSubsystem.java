@@ -63,7 +63,7 @@ public class ShooterSubsystem extends SubsystemBase {
      * direction). This is CTRE's Follower.opposeMasterDirection — flip this
      * single flag, do NOT touch motor-invert config for this.
      */
-    private static final boolean FOLLOWER_INVERTED = false;
+    private static final boolean FOLLOWER_INVERTED = true;
 
     // ── Power management ─────────────────────────────────────────────────
     private static final double STATOR_CURRENT_LIMIT_A       = 80.0;

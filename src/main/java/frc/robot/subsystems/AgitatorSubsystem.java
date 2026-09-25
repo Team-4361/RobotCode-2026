@@ -16,6 +16,7 @@ import org.littletonrobotics.junction.Logger;
 public class AgitatorSubsystem extends SubsystemBase
 {
         private final SparkFlex sparkFlex;
+        
 
         private double lastCommandedSpeed = 0;
 
