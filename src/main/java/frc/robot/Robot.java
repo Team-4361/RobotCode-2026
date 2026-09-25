@@ -73,7 +73,7 @@ public class Robot extends LoggedRobot   // <-- was TimedRobot
         // NT4 never touches disk — add it first so live telemetry still
         // works even if file logging can't start.
         Logger.addDataReceiver(new NT4Publisher());
-        safeAddWpilogWriter("/U");
+        addBestAvailableWpilogWriter();
       }
       else if (REPLAY_MODE)
       {
@@ -112,19 +112,49 @@ public class Robot extends LoggedRobot   // <-- was TimedRobot
   }
 
   /**
-   * Adds a WPILOGWriter only if the target has enough free space, and never
-   * lets a failure here escape — logging is a nice-to-have, not something
-   * that should be able to take the robot program down.
+   * Prefers USB ("/U") for real-robot logging; falls back to roboRIO
+   * onboard storage ("") if no USB is present or it lacks space; disables
+   * WPILOG file logging entirely (NT4 live streaming still works) if
+   * neither target is usable.
+   */
+  private void addBestAvailableWpilogWriter()
+  {
+    if (tryAddWpilogWriter("/U")) return;
+
+    DriverStation.reportWarning(
+        "No usable USB for logging — falling back to roboRIO onboard storage.", false);
+
+    if (!tryAddWpilogWriter(""))
+    {
+      DriverStation.reportWarning(
+          "No logging target available (no USB, insufficient roboRIO storage) — "
+        + "file logging disabled. NT4 live logging is still active.", false);
+    }
+  }
+
+  /**
+   * Adds a WPILOGWriter only if the target exists and has enough free
+   * space, and never lets a failure here escape — logging is a
+   * nice-to-have, not something that should be able to take the robot
+   * program down.
    *
    * @param target Path to pass to {@link WPILOGWriter} ("" = onboard default,
    *               "/U" = USB stick, or a specific path for replay output).
+   * @return true if the writer was successfully added.
    */
-  private void safeAddWpilogWriter(String target)
+  private boolean tryAddWpilogWriter(String target)
   {
     try
     {
       String checkPath = target.isEmpty() ? "/home/lvuser/logs" : target;
       java.io.File dir = new java.io.File(checkPath);
+
+      // A USB mount point that doesn't exist means "no USB" — don't treat
+      // that as infinite free space and try to write there anyway.
+      if (!target.isEmpty() && !dir.exists())
+      {
+        return false;
+      }
 
       long freeBytes = dir.exists() ? dir.getUsableSpace() : Long.MAX_VALUE;
       if (freeBytes < MIN_FREE_BYTES_FOR_LOGGING)
@@ -134,19 +164,30 @@ public class Robot extends LoggedRobot   // <-- was TimedRobot
                 + (freeBytes / 1024 / 1024) + " MB free (need "
                 + (MIN_FREE_BYTES_FOR_LOGGING / 1024 / 1024) + " MB).",
             false);
-        return;
+        return false;
       }
 
       Logger.addDataReceiver(new WPILOGWriter(target));
+      return true;
     }
     catch (Throwable t)
     {
       DriverStation.reportError(
           "Failed to add WPILOGWriter for '" + target + "', continuing without it: " + t,
           t.getStackTrace());
+      return false;
     }
   }
 
+  /**
+   * Original single-target writer helper — still used for the sim/replay
+   * paths, which only ever target one place and don't need the
+   * USB→RIO fallback chain.
+   */
+  private void safeAddWpilogWriter(String target)
+  {
+    tryAddWpilogWriter(target);
+  }
 
   @Override
   public void robotPeriodic()
@@ -155,7 +196,7 @@ public class Robot extends LoggedRobot   // <-- was TimedRobot
     m_robotContainer.updateVision();
 
     //Not need I think, have to check if this is needed for logging controls or if advantagekit already does it.
-   // m_robotContainer.updateControls(); 
+   // m_robotContainer.updateControls();
 
     Logger.recordOutput("General/MatchTimeSeconds", DriverStation.getMatchTime());
     Logger.recordOutput("General/BatteryVoltage",
