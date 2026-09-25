@@ -47,34 +47,55 @@ public class Robot extends LoggedRobot   // <-- was TimedRobot
   }
 
   public static final boolean REPLAY_MODE = false; // flip this on manually when replaying
+
+  /**
+   * Minimum free space (bytes) required before we trust a target with a
+   * WPILOGWriter. Below this, AdvantageKit's file writer can fail to open
+   * (or die mid-match) — without a guard, that exception propagates out of
+   * robotInit() and kills the whole robot program before RobotContainer
+   * (and therefore every subsystem) ever gets constructed.
+   */
+  private static final long MIN_FREE_BYTES_FOR_LOGGING = 25L * 1024 * 1024; // 25 MB
+
   @Override
   public void robotInit()
   {
     // ---- AdvantageKit setup: do this before anything else ----
-    Logger.recordMetadata("ProjectName", "2026Robot");
-    Logger.recordMetadata("GitSHA", edu.wpi.first.wpilibj.util.WPILibVersion.Version);
-
-    if (isReal())
+    // Wrapped in try/catch: a logging failure must never stop the rest of
+    // robotInit() from running.
+    try
     {
-      Logger.addDataReceiver(new WPILOGWriter("/U"));
-      Logger.addDataReceiver(new NT4Publisher());
-    }
-    else if (REPLAY_MODE)
-    {
-      setUseTiming(false);
-      String logPath = LogFileUtil.findReplayLog();
-      Logger.setReplaySource(new WPILOGReader(logPath));
-      Logger.addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_sim")));
-    }
-    else
-    {
-      // Normal live simulation
-      Logger.addDataReceiver(new NT4Publisher());
-      Logger.addDataReceiver(new WPILOGWriter(""));
-    }
+      Logger.recordMetadata("ProjectName", "2026Robot");
+      Logger.recordMetadata("GitSHA", edu.wpi.first.wpilibj.util.WPILibVersion.Version);
 
+      if (isReal())
+      {
+        // NT4 never touches disk — add it first so live telemetry still
+        // works even if file logging can't start.
+        Logger.addDataReceiver(new NT4Publisher());
+        safeAddWpilogWriter("/U");
+      }
+      else if (REPLAY_MODE)
+      {
+        setUseTiming(false);
+        String logPath = LogFileUtil.findReplayLog();
+        Logger.setReplaySource(new WPILOGReader(logPath));
+        safeAddWpilogWriter(LogFileUtil.addPathSuffix(logPath, "_sim"));
+      }
+      else
+      {
+        Logger.addDataReceiver(new NT4Publisher());
+        safeAddWpilogWriter("");
+      }
 
-    Logger.start();
+      Logger.start();
+    }
+    catch (Throwable t)
+    {
+      DriverStation.reportError(
+          "AdvantageKit logger setup failed, continuing without it: " + t,
+          t.getStackTrace());
+    }
     // ------------------------------------------------------------
 
     m_robotContainer = new RobotContainer();
@@ -89,6 +110,43 @@ public class Robot extends LoggedRobot   // <-- was TimedRobot
       DriverStation.silenceJoystickConnectionWarning(true);
     }
   }
+
+  /**
+   * Adds a WPILOGWriter only if the target has enough free space, and never
+   * lets a failure here escape — logging is a nice-to-have, not something
+   * that should be able to take the robot program down.
+   *
+   * @param target Path to pass to {@link WPILOGWriter} ("" = onboard default,
+   *               "/U" = USB stick, or a specific path for replay output).
+   */
+  private void safeAddWpilogWriter(String target)
+  {
+    try
+    {
+      String checkPath = target.isEmpty() ? "/home/lvuser/logs" : target;
+      java.io.File dir = new java.io.File(checkPath);
+
+      long freeBytes = dir.exists() ? dir.getUsableSpace() : Long.MAX_VALUE;
+      if (freeBytes < MIN_FREE_BYTES_FOR_LOGGING)
+      {
+        DriverStation.reportWarning(
+            "Skipping WPILOG file logging to '" + target + "' — only "
+                + (freeBytes / 1024 / 1024) + " MB free (need "
+                + (MIN_FREE_BYTES_FOR_LOGGING / 1024 / 1024) + " MB).",
+            false);
+        return;
+      }
+
+      Logger.addDataReceiver(new WPILOGWriter(target));
+    }
+    catch (Throwable t)
+    {
+      DriverStation.reportError(
+          "Failed to add WPILOGWriter for '" + target + "', continuing without it: " + t,
+          t.getStackTrace());
+    }
+  }
+
 
   @Override
   public void robotPeriodic()
