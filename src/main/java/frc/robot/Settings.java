@@ -123,106 +123,106 @@ public final class Settings {
 
         // auto poses
         // get aprilTag pose on blue
-        public static Pose2d cdATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(17)
-                        .get()
-                        .toPose2d();
-        public static Pose2d efATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(22)
-                        .get()
-                        .toPose2d();
-        public static Pose2d ghATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(21)
-                        .get()
-                        .toPose2d();
-        public static Pose2d processorATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark)
-                        .getTagPose(16)
-                        .get().toPose2d();
-        public static Pose2d abATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(18)
-                        .get()
-                        .toPose2d();
-        public static Pose2d ijATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(20)
-                        .get()
-                        .toPose2d();
-        public static Pose2d klATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(19)
-                        .get()
-                        .toPose2d();
-        public static Pose2d rightFeederStationPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark)
-                        .getTagPose(12).get().toPose2d();
-        public static Pose2d leftFeederStationPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark)
-                        .getTagPose(13).get().toPose2d();
+        // public static Pose2d cdATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(17)
+        //                 .get()
+        //                 .toPose2d();
+        // public static Pose2d efATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(22)
+        //                 .get()
+        //                 .toPose2d();
+        // public static Pose2d ghATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(21)
+        //                 .get()
+        //                 .toPose2d();
+        // public static Pose2d processorATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark)
+        //                 .getTagPose(16)
+        //                 .get().toPose2d();
+        // public static Pose2d abATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(18)
+        //                 .get()
+        //                 .toPose2d();
+        // public static Pose2d ijATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(20)
+        //                 .get()
+        //                 .toPose2d();
+        // public static Pose2d klATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(19)
+        //                 .get()
+        //                 .toPose2d();
+        // public static Pose2d rightFeederStationPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark)
+        //                 .getTagPose(12).get().toPose2d();
+        // public static Pose2d leftFeederStationPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark)
+        //                 .getTagPose(13).get().toPose2d();
 
         // offsets reef
-        public static Transform2d tagToLeft = new Transform2d(0.4475, -0.21, new Rotation2d(Math.PI));
-        public static Transform2d tagToRight = new Transform2d(0.4875, 0.08, new Rotation2d(Math.PI));
-        public static Transform2d tagToLeftL1 = new Transform2d(0.05, 0.35, new Rotation2d());
-        public static Transform2d tagToRightL1 = new Transform2d(0.05, -0.275, new Rotation2d());
+        // public static Transform2d tagToLeft = new Transform2d(0.4475, -0.21, new Rotation2d(Math.PI));
+        // public static Transform2d tagToRight = new Transform2d(0.4875, 0.08, new Rotation2d(Math.PI));
+        // public static Transform2d tagToLeftL1 = new Transform2d(0.05, 0.35, new Rotation2d());
+        // public static Transform2d tagToRightL1 = new Transform2d(0.05, -0.275, new Rotation2d());
 
-        // offset pocessor
-        public static Transform2d tagToProcessor = new Transform2d(0.45, 0.15, new Rotation2d(Math.PI));
-        public static Transform2d closeFeederStation = new Transform2d(0.5, -0.3, new Rotation2d());
-        public static Transform2d farFeederStation = new Transform2d(0.5, 0.6, new Rotation2d());
-        public static Transform2d centerFeederStation = new Transform2d(0.5, 0, new Rotation2d());
+        // // offset pocessor
+        // public static Transform2d tagToProcessor = new Transform2d(0.45, 0.15, new Rotation2d(Math.PI));
+        // public static Transform2d closeFeederStation = new Transform2d(0.5, -0.3, new Rotation2d());
+        // public static Transform2d farFeederStation = new Transform2d(0.5, 0.6, new Rotation2d());
+        // public static Transform2d centerFeederStation = new Transform2d(0.5, 0, new Rotation2d());
 
-        // astar tranforms
-        public static Transform2d astarReefPoseOffset = new Transform2d(-0.25, 0, new Rotation2d());
-        public static Transform2d astarProcesserPoseOffset = new Transform2d(-0.75, 0, new Rotation2d());
-        public static Transform2d astarFeederStPoseOffset = new Transform2d(0.25, 0, new Rotation2d());
+        // // astar tranforms
+        // public static Transform2d astarReefPoseOffset = new Transform2d(-0.25, 0, new Rotation2d());
+        // public static Transform2d astarProcesserPoseOffset = new Transform2d(-0.75, 0, new Rotation2d());
+        // public static Transform2d astarFeederStPoseOffset = new Transform2d(0.25, 0, new Rotation2d());
 
-        public static Transform2d backUpFromReefTransform = new Transform2d(-1,0,new Rotation2d());
+        // public static Transform2d backUpFromReefTransform = new Transform2d(-1,0,new Rotation2d());
 
-        // reef posess
-        public static Pose2d coralRightAB = abATPose.plus(tagToRight);
-        public static Pose2d coralLeftAB = abATPose.plus(tagToLeft);
-        public static Pose2d coralRightCD = cdATPose.plus(tagToRight);
-        public static Pose2d coralLeftCD = cdATPose.plus(tagToLeft);
-        public static Pose2d coralRightEF = efATPose.plus(tagToRight);
-        public static Pose2d coralLeftEF = efATPose.plus(tagToLeft);
-        public static Pose2d coralRightGH = ghATPose.plus(tagToRight);
-        public static Pose2d coralLeftGH = ghATPose.plus(tagToLeft);
-        public static Pose2d coralRightIJ = ijATPose.plus(tagToRight);
-        public static Pose2d coralLeftIJ = ijATPose.plus(tagToLeft);
-        public static Pose2d coralRightKL = klATPose.plus(tagToRight);
-        public static Pose2d coralLeftKL = klATPose.plus(tagToLeft);
+        // // reef posess
+        // public static Pose2d coralRightAB = abATPose.plus(tagToRight);
+        // public static Pose2d coralLeftAB = abATPose.plus(tagToLeft);
+        // public static Pose2d coralRightCD = cdATPose.plus(tagToRight);
+        // public static Pose2d coralLeftCD = cdATPose.plus(tagToLeft);
+        // public static Pose2d coralRightEF = efATPose.plus(tagToRight);
+        // public static Pose2d coralLeftEF = efATPose.plus(tagToLeft);
+        // public static Pose2d coralRightGH = ghATPose.plus(tagToRight);
+        // public static Pose2d coralLeftGH = ghATPose.plus(tagToLeft);
+        // public static Pose2d coralRightIJ = ijATPose.plus(tagToRight);
+        // public static Pose2d coralLeftIJ = ijATPose.plus(tagToLeft);
+        // public static Pose2d coralRightKL = klATPose.plus(tagToRight);
+        // public static Pose2d coralLeftKL = klATPose.plus(tagToLeft);
 
 
-        public static Pose2d processorAP = processorATPose.plus(tagToProcessor);
-        public static Pose2d rightCloseFeederStationAP = rightFeederStationPose.plus(closeFeederStation);
-        public static Pose2d rightFarFeederStationAP = rightFeederStationPose.plus(farFeederStation);
-        public static Pose2d leftFarFeederStationAP = leftFeederStationPose.plus(farFeederStation);
-        public static Pose2d leftCloseFeederStationAP = leftFeederStationPose.plus(closeFeederStation);
-        public static Pose2d leftCenterFeederStationAP = leftFeederStationPose.plus(centerFeederStation);
-        public static Pose2d rightCenterFeederStationAP = rightFeederStationPose.plus(centerFeederStation);
+        // public static Pose2d processorAP = processorATPose.plus(tagToProcessor);
+        // public static Pose2d rightCloseFeederStationAP = rightFeederStationPose.plus(closeFeederStation);
+        // public static Pose2d rightFarFeederStationAP = rightFeederStationPose.plus(farFeederStation);
+        // public static Pose2d leftFarFeederStationAP = leftFeederStationPose.plus(farFeederStation);
+        // public static Pose2d leftCloseFeederStationAP = leftFeederStationPose.plus(closeFeederStation);
+        // public static Pose2d leftCenterFeederStationAP = leftFeederStationPose.plus(centerFeederStation);
+        // public static Pose2d rightCenterFeederStationAP = rightFeederStationPose.plus(centerFeederStation);
 
-        public static Pose2d reefZoneBlue = new Pose2d(4.495, 4.019, new Rotation2d(Radians.convertFrom(0, Degrees)));
-        public static Pose2d reefZoneRed = new Pose2d(13.091, 4.043, new Rotation2d(Radians.convertFrom(0, Degrees)));
-        public static double minDistanceFromReefZoneMeter = 2.5;
-        public static double maxATDist = 3;
-        public static double maxATDistDisabeled = 5;
+        // public static Pose2d reefZoneBlue = new Pose2d(4.495, 4.019, new Rotation2d(Radians.convertFrom(0, Degrees)));
+        // public static Pose2d reefZoneRed = new Pose2d(13.091, 4.043, new Rotation2d(Radians.convertFrom(0, Degrees)));
+        // public static double minDistanceFromReefZoneMeter = 2.5;
+        // public static double maxATDist = 3;
+        // public static double maxATDistDisabeled = 5;
 
-        public static double coralScoreThold = 0.06;
-        public static double elevatorSafeToGoThold = 1.5;
-        public static double coralScoreDegThold = 3;
-        public static double scoringVelocityThold = 0.08;
+        // public static double coralScoreThold = 0.06;
+        // public static double elevatorSafeToGoThold = 1.5;
+        // public static double coralScoreDegThold = 3;
+        // public static double scoringVelocityThold = 0.08;
         
-        public static double coralStationThold = 0.03;
-        public static double coralStationDegThold = 20;
-        public static double stationVelocityThold = 0.1;
-        // elevator positions
-        public static double elevatorPosStowed = 0;
-        public static double elevatorPosL1 = 0;
-        public static double elevatorPosL2 = 9;
-        public static double elevatorPosProcessor = 7;
-        public static double elevatorPosL3 = 22.0;
-        //public static double elevatorPosL4 = 43;
-        public static double elevatorPosL4 = 42;
-        public static double elevatorPosA2 = 23.43;
-        public static double elevatorPosA3 = 34.57;
+        // public static double coralStationThold = 0.03;
+        // public static double coralStationDegThold = 20;
+        // public static double stationVelocityThold = 0.1;
+        // // elevator positions
+        // public static double elevatorPosStowed = 0;
+        // public static double elevatorPosL1 = 0;
+        // public static double elevatorPosL2 = 9;
+        // public static double elevatorPosProcessor = 7;
+        // public static double elevatorPosL3 = 22.0;
+        // //public static double elevatorPosL4 = 43;
+        // public static double elevatorPosL4 = 42;
+        // public static double elevatorPosA2 = 23.43;
+        // public static double elevatorPosA3 = 34.57;
 
-        // climber positions
-        public static double climberArmOutPos = -93.55;
-        public static double climberClimbingPos = 0;
-        public static double climberStowedPos = 0;
+        // // climber positions
+        // public static double climberArmOutPos = -93.55;
+        // public static double climberClimbingPos = 0;
+        // public static double climberStowedPos = 0;
 
-        // coral sensor
-        public static double sensorThold = 0.8;
+        // // coral sensor
+        // public static double sensorThold = 0.8;
 
         // auto start poses
         public static Pose2d autoMidStartPose = new Pose2d(7.229, 3.899, new Rotation2d(Math.PI));
@@ -236,26 +236,26 @@ public final class Settings {
                 return distance;
         }
 
-        public static Pose2d flipPoseTemp(Pose2d goalPose) {
-                double goalXPos = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getFieldLength()
-                                - goalPose.getX();
-                double goalYPos = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getFieldWidth()
-                                - goalPose.getY();
-                Rotation2d goalRPos = goalPose.getRotation().rotateBy(new Rotation2d(Math.PI));
+        // public static Pose2d flipPoseTemp(Pose2d goalPose) {
+        //         double goalXPos = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getFieldLength()
+        //                         - goalPose.getX();
+        //         double goalYPos = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getFieldWidth()
+        //                         - goalPose.getY();
+        //         Rotation2d goalRPos = goalPose.getRotation().rotateBy(new Rotation2d(Math.PI));
 
-                if (goalXPos <= AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getFieldLength() / 2) {
-                        return goalPose;
-                }
+        //         if (goalXPos <= AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getFieldLength() / 2) {
+        //                 return goalPose;
+        //         }
 
-                return new Pose2d(goalXPos, goalYPos, goalRPos);
-        }
+        //         return new Pose2d(goalXPos, goalYPos, goalRPos);
+        // }
 
-        public static Pose2d changeOffsetToL1(Pose2d coralScoreGoalPose, boolean leftSide){
-                if (leftSide) {
-                        coralScoreGoalPose = coralScoreGoalPose.plus(tagToLeftL1);
-                } else {
-                        coralScoreGoalPose = coralScoreGoalPose.plus(tagToRightL1);
-                }
-                return coralScoreGoalPose;   
-        }
+        // public static Pose2d changeOffsetToL1(Pose2d coralScoreGoalPose, boolean leftSide){
+        //         if (leftSide) {
+        //                 coralScoreGoalPose = coralScoreGoalPose.plus(tagToLeftL1);
+        //         } else {
+        //                 coralScoreGoalPose = coralScoreGoalPose.plus(tagToRightL1);
+        //         }
+        //         return coralScoreGoalPose;   
+        // }
 }

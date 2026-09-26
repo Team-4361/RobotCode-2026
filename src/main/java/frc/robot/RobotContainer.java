@@ -50,15 +50,15 @@ public class RobotContainer
     
 
     // ========== FIELD CONSTANTS ==========
-    private static final double FIELD_LENGTH_M = Units.inchesToMeters(651.25);
+    private static final double FIELD_LENGTH_M = Units.inchesToMeters(578.25);
     private static final double FIELD_WIDTH_M = Units.inchesToMeters(317.69);
 
     public static final Translation2d HUB_CENTER_BLUE =
 
-        new Translation2d(Units.inchesToMeters(182.11), Units.inchesToMeters(158.84));
+        new Translation2d(Units.inchesToMeters(157.5), Units.inchesToMeters(158.84));
 
     public static final Translation2d HUB_CENTER_RED =
-        new Translation2d(FIELD_LENGTH_M - Units.inchesToMeters(182.11),
+        new Translation2d(FIELD_LENGTH_M - Units.inchesToMeters(157.5),
                           Units.inchesToMeters(158.84));
 
         Field2d fullPose  = new Field2d();
