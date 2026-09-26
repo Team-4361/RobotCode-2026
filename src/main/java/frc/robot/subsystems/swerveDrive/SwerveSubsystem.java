@@ -132,7 +132,7 @@ public void periodic()
   Logger.recordOutput("Drive/HeadingDegrees", getHeading().getDegrees());
   Logger.recordOutput("Drive/RobotRelativeSpeeds", getRobotVelocity());
   Logger.recordOutput("Drive/FieldRelativeSpeeds", getFieldVelocity());
-  Logger.recordOutput("Drive/ModuleStates", swerveDrive.getStates());
+  //Logger.recordOutput("Drive/ModuleStates", swerveDrive.getStates());
 }
 
   @Override
