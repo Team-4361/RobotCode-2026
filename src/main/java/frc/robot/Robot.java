@@ -67,7 +67,12 @@ public class Robot extends LoggedRobot   // <-- was TimedRobot
     {
       Logger.recordMetadata("ProjectName", "2026Robot");
       Logger.recordMetadata("GitSHA", edu.wpi.first.wpilibj.util.WPILibVersion.Version);
+     // Logger.addDataReceiver(new NT4Publisher());
 
+
+          // TEMP: disabled while diagnosing OOM crashes. No data receivers means
+    // recordOutput() calls become cheap no-ops instead of buffering to NT/disk.
+    /*
       if (isReal())
       {
         // NT4 never touches disk — add it first so live telemetry still
@@ -87,6 +92,7 @@ public class Robot extends LoggedRobot   // <-- was TimedRobot
         Logger.addDataReceiver(new NT4Publisher());
         safeAddWpilogWriter("");
       }
+        */
 
       Logger.start();
     }

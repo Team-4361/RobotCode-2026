@@ -29,7 +29,7 @@ import edu.wpi.first.wpilibj2.command.button.CommandJoystick;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.RobotModeTriggers;
 import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
-import frc.robot.logics.ControlsLogger;
+//import frc.robot.logics.ControlsLogger;
 import frc.robot.logics.SnapToHubCommand;
 import frc.robot.logics.Vision;
 import frc.robot.subsystems.AgitatorSubsystem;
