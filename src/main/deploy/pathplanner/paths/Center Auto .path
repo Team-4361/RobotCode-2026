@@ -39,6 +39,12 @@
       "command": null
     },
     {
+      "name": "RevShooter",
+      "waypointRelativePos": 0.0,
+      "endWaypointRelativePos": null,
+      "command": null
+    },
+    {
       "name": "Intake",
       "waypointRelativePos": 0.25256511444357416,
       "endWaypointRelativePos": null,
