@@ -348,7 +348,7 @@ NamedCommands.registerCommand("stowIntake",
         NamedCommands.registerCommand("ShootCenter",         shootWithFeedCommandAuto(SHOOTER_REV_SPEED, 3));
         NamedCommands.registerCommand("ShootFull",         shootWithFeedCommand());
 
-        NamedCommands.registerCommand("RevShooter", shooter.revShooter(SHOOTER_REV_SPEED));
+        NamedCommands.registerCommand("RevShooter", shooter.setSPEED(SHOOTER_REV_SPEED));
     NamedCommands.registerCommand("ShootBounce", shootWithIntakeBounceAuto(0.77, 6.7));
 // NamedCommands.registerCommand("stowHalf",
 //     Commands.defer(() -> intakeArm.stowHalfCommand(), Set.of(intakeArm))
