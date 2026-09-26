@@ -17,9 +17,22 @@
           }
         },
         {
-          "type": "named",
+          "type": "parallel",
           "data": {
-            "name": "ShootCenter"
+            "commands": [
+              {
+                "type": "named",
+                "data": {
+                  "name": "ShootCenter"
+                }
+              },
+              {
+                "type": "named",
+                "data": {
+                  "name": "stowHalf"
+                }
+              }
+            ]
           }
         },
         {
@@ -38,12 +51,6 @@
           "type": "named",
           "data": {
             "name": "ShootCenter"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
-            "name": "stowHalf"
           }
         }
       ]

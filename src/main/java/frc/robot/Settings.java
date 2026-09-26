@@ -123,30 +123,30 @@ public final class Settings {
 
         // auto poses
         // get aprilTag pose on blue
-        public static Pose2d cdATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded).getTagPose(17)
+        public static Pose2d cdATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(17)
                         .get()
                         .toPose2d();
-        public static Pose2d efATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded).getTagPose(22)
+        public static Pose2d efATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(22)
                         .get()
                         .toPose2d();
-        public static Pose2d ghATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded).getTagPose(21)
+        public static Pose2d ghATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(21)
                         .get()
                         .toPose2d();
-        public static Pose2d processorATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded)
+        public static Pose2d processorATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark)
                         .getTagPose(16)
                         .get().toPose2d();
-        public static Pose2d abATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded).getTagPose(18)
+        public static Pose2d abATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(18)
                         .get()
                         .toPose2d();
-        public static Pose2d ijATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded).getTagPose(20)
+        public static Pose2d ijATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(20)
                         .get()
                         .toPose2d();
-        public static Pose2d klATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded).getTagPose(19)
+        public static Pose2d klATPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getTagPose(19)
                         .get()
                         .toPose2d();
-        public static Pose2d rightFeederStationPose = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded)
+        public static Pose2d rightFeederStationPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark)
                         .getTagPose(12).get().toPose2d();
-        public static Pose2d leftFeederStationPose = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded)
+        public static Pose2d leftFeederStationPose = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark)
                         .getTagPose(13).get().toPose2d();
 
         // offsets reef
@@ -237,13 +237,13 @@ public final class Settings {
         }
 
         public static Pose2d flipPoseTemp(Pose2d goalPose) {
-                double goalXPos = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded).getFieldLength()
+                double goalXPos = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getFieldLength()
                                 - goalPose.getX();
-                double goalYPos = AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded).getFieldWidth()
+                double goalYPos = AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getFieldWidth()
                                 - goalPose.getY();
                 Rotation2d goalRPos = goalPose.getRotation().rotateBy(new Rotation2d(Math.PI));
 
-                if (goalXPos <= AprilTagFieldLayout.loadField(AprilTagFields.k2025ReefscapeWelded).getFieldLength() / 2) {
+                if (goalXPos <= AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltAndymark).getFieldLength() / 2) {
                         return goalPose;
                 }
 
