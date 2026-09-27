@@ -13,12 +13,6 @@
         {
           "type": "named",
           "data": {
-            "name": "SnapToHub"
-          }
-        },
-        {
-          "type": "named",
-          "data": {
             "name": "ShootBounce"
           }
         }
