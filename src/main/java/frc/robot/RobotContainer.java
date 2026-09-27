@@ -297,10 +297,10 @@ private Command shootWithIntakeBounceAuto(double shooterSpeed, double durationSe
             // Shoot + agitator + indexer + intake bouncing for duration
             shooter.set(shooterSpeed)
                 .alongWith(
-                    agitator.runMotorCommand(SmartDashboard.getNumber("AGITATOR_SPEED", 0.9)),
-                    indexer.runMotorCommand(SmartDashboard.getNumber("INDEXER_SPEED", 0.9)),
+                    agitator.runMotorCommand(0.3),
+                    indexer.runMotorCommand(-0.4),
                     Commands.repeatingSequence(
-                        intakeArm.stowCommand(),
+                        intakeArm.stowHalfCommand(),
                         intakeArm.deployCommand()
                     )
                 )
@@ -349,7 +349,7 @@ NamedCommands.registerCommand("stowIntake",
         NamedCommands.registerCommand("ShootFull",         shootWithFeedCommand());
 
         NamedCommands.registerCommand("RevShooter", shooter.setSPEED(SHOOTER_REV_SPEED));
-    NamedCommands.registerCommand("ShootBounce", shootWithIntakeBounceAuto(0.77, 6.7));
+    NamedCommands.registerCommand("ShootBounce", shootWithIntakeBounceAuto(SHOOTER_REV_SPEED, 3));
 // NamedCommands.registerCommand("stowHalf",
 //     Commands.defer(() -> intakeArm.stowHalfCommand(), Set.of(intakeArm))
 // );        
