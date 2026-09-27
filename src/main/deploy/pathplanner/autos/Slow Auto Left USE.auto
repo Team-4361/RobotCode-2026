@@ -7,13 +7,25 @@
         {
           "type": "path",
           "data": {
-            "pathName": "centerToShoot"
+            "pathName": "Slow Left Auto 1"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "SnapToHub"
           }
         },
         {
           "type": "named",
           "data": {
             "name": "ShootBounce"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Slow Left Auto 2"
           }
         }
       ]

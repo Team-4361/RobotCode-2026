@@ -7,13 +7,25 @@
         {
           "type": "path",
           "data": {
-            "pathName": "centerToShoot"
+            "pathName": "Slow Right"
+          }
+        },
+        {
+          "type": "named",
+          "data": {
+            "name": "SnapToHub"
           }
         },
         {
           "type": "named",
           "data": {
             "name": "ShootBounce"
+          }
+        },
+        {
+          "type": "path",
+          "data": {
+            "pathName": "Right Slow Cycle 2"
           }
         }
       ]

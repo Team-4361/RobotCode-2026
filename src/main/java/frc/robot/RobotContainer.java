@@ -297,10 +297,10 @@ private Command shootWithIntakeBounceAuto(double shooterSpeed, double durationSe
             // Shoot + agitator + indexer + intake bouncing for duration
             shooter.set(shooterSpeed)
                 .alongWith(
-                    agitator.runMotorCommand(SmartDashboard.getNumber("AGITATOR_SPEED", 0.9)),
-                    indexer.runMotorCommand(SmartDashboard.getNumber("INDEXER_SPEED", 0.9)),
+                    agitator.runMotorCommand(0.3),
+                    indexer.runMotorCommand(-0.4),
                     Commands.repeatingSequence(
-                        intakeArm.stowCommand(),
+                        intakeArm.stowHalfCommand(),
                         intakeArm.deployCommand()
                     )
                 )
