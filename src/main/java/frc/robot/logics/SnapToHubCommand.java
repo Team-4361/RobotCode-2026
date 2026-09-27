@@ -19,7 +19,7 @@ public class SnapToHubCommand extends Command {
     // ── Tuning ────────────────────────────────────────────────────────────────
 
     /** Target distance from hub centre (metres). */
-    private static final double HUB_KEEP_DISTANCE_M  = 2.502154;
+    private static final double HUB_KEEP_DISTANCE_M  = 2.349754;
 
     /** P-gain for radial snap (m/s per metre of error). */
     private static final double HUB_SNAP_GAIN        = 4.0;

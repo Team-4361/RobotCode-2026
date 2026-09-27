@@ -335,7 +335,7 @@ private Command shootWithIntakeBounceAuto(double shooterSpeed, double durationSe
         NamedCommands.registerCommand("DeployIntake",intakeArm.deployCommand());
         NamedCommands.registerCommand("stowHalf",intakeArm.stowHalfCommand());
 
-NamedCommands.registerCommand("stowIntake",
+        NamedCommands.registerCommand("stowIntake",
     Commands.defer(() -> intakeArm.stowCommand(), Set.of(intakeArm))
 );
         NamedCommands.registerCommand("Intake", intakeRoller.intakeCommand() );
@@ -349,7 +349,7 @@ NamedCommands.registerCommand("stowIntake",
         NamedCommands.registerCommand("ShootFull",         shootWithFeedCommand());
 
         NamedCommands.registerCommand("RevShooter", shooter.setSPEED(SHOOTER_REV_SPEED));
-    NamedCommands.registerCommand("ShootBounce", shootWithIntakeBounceAuto(0.77, 6.7));
+    NamedCommands.registerCommand("ShootBounce", shootWithIntakeBounceAuto(SHOOTER_REV_SPEED, 3));
 // NamedCommands.registerCommand("stowHalf",
 //     Commands.defer(() -> intakeArm.stowHalfCommand(), Set.of(intakeArm))
 // );        
@@ -430,16 +430,16 @@ NamedCommands.registerCommand("stowIntake",
             
             operatorXbox.a().onTrue(intakeArm.deployCommand());
             operatorXbox.b().onTrue(intakeArm.stowCommand());
-            operatorXbox.x().onTrue(intakeArm.stowHalfCommand());
-            operatorXbox.rightTrigger(0.3).toggleOnTrue(intakeRoller.intakeCommand());
+            joystickR.button(3).onTrue(intakeArm.stowHalfCommand());
+            joystickR.button(1).toggleOnTrue(intakeRoller.intakeCommand());
         operatorXbox.leftTrigger(0.3).whileTrue(intakeRoller.outtakeCommand());
         operatorXbox.povUp().whileTrue(intakeArm.manualCommand());
         operatorXbox.povDown().whileTrue(intakeArm.manualCommandDown());
 
 
             // ── Operator: Shoot ──────────────────────────────────────────────────
-            operatorXbox.rightBumper().whileTrue(shootWithFeedCommand());
-            operatorXbox.leftBumper().whileTrue(shooter.setSPEED(SHOOTER_REV_SPEED));
+            joystickR.button(2).whileTrue(shootWithFeedCommand());
+            joystickL.button(4).whileTrue(shooter.setSPEED(SHOOTER_REV_SPEED));
 
             
         }

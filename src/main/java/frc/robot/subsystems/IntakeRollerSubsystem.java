@@ -13,6 +13,8 @@ import org.littletonrobotics.junction.Logger;
 public class IntakeRollerSubsystem extends SubsystemBase {
 
 
+
+
     
     private static final int    DEVICE_ID     = 15;       
     private static final double INTAKE_SPEED  =  1.0;
@@ -36,6 +38,10 @@ public class IntakeRollerSubsystem extends SubsystemBase {
         kraken.setControl(dutyCycleRequest.withOutput(INTAKE_SPEED));
         RUNNING = true;
 
+    }
+
+    public Command intakeForAutoCommand(double seconds) {
+        return this.startEnd(this::intake, this::stop).withTimeout(seconds);
     }
 
     public void outtake() {

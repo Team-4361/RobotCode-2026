@@ -52,12 +52,6 @@
           "data": {
             "name": "ShootCenter"
           }
-        },
-        {
-          "type": "path",
-          "data": {
-            "pathName": "Right Cycle 3"
-          }
         }
       ]
     }
