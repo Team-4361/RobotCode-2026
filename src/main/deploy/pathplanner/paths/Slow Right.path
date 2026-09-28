@@ -117,7 +117,7 @@
       },
       "prevControl": {
         "x": 5.895098116357212,
-        "y": 1.3250516368861187
+        "y": 1.3250516368861185
       },
       "nextControl": {
         "x": 5.326563693614802,
@@ -220,25 +220,45 @@
       "name": "DeployIntake",
       "waypointRelativePos": 0.897009966777429,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "DeployIntake"
+        }
+      }
     },
     {
       "name": "Intake",
       "waypointRelativePos": 1.076411960132876,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "Intake"
+        }
+      }
     },
     {
       "name": "StopIntake",
       "waypointRelativePos": 7.495016611295766,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "StopIntake"
+        }
+      }
     },
     {
       "name": "RevShooter",
       "waypointRelativePos": 7.734219269102985,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "RevShooter"
+        }
+      }
     }
   ],
   "globalConstraints": {

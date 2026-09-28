@@ -224,25 +224,45 @@
       "name": "DeployIntake",
       "waypointRelativePos": 0.992125984251961,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "DeployIntake"
+        }
+      }
     },
     {
       "name": "Intake",
       "waypointRelativePos": 1.457817772778373,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "Intake"
+        }
+      }
     },
     {
       "name": "StopIntake",
       "waypointRelativePos": 7.248593925759353,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "StopIntake"
+        }
+      }
     },
     {
       "name": "RevShooter",
       "waypointRelativePos": 7.876265466816726,
       "endWaypointRelativePos": null,
-      "command": null
+      "command": {
+        "type": "named",
+        "data": {
+          "name": "RevShooter"
+        }
+      }
     }
   ],
   "globalConstraints": {
