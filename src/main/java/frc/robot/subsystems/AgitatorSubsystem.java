@@ -9,7 +9,9 @@ import frc.robot.Constants;
 import edu.wpi.first.wpilibj.Servo;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
+import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 
 import org.littletonrobotics.junction.Logger;
 
@@ -24,11 +26,16 @@ public class AgitatorSubsystem extends SubsystemBase
     {
         sparkFlex = new SparkFlex(Constants.AgitatorConstants.agitatorNeoID, MotorType.kBrushless);
         SparkFlexConfig config = new SparkFlexConfig();
-        config.idleMode(IdleMode.kBrake);
+        config.idleMode(IdleMode.kBrake).smartCurrentLimit(50);  
         sparkFlex.configure(config, ResetMode.kResetSafeParameters, PersistMode.kPersistParameters);
-        config.smartCurrentLimit(40);
          SmartDashboard.putNumber("Agitator Speed", Constants.AgitatorConstants.vortexSpeed);
     }
+
+private boolean isStalled() {
+    return lastCommandedSpeed != 0
+        && sparkFlex.getOutputCurrent() > 35
+        && Math.abs(sparkFlex.getEncoder().getVelocity()) < 300;
+}
 
     public void changeAgitatorSpeed (double vortexSpeed) {
         sparkFlex.set(vortexSpeed);
@@ -38,6 +45,16 @@ public class AgitatorSubsystem extends SubsystemBase
         sparkFlex.set(0);
         lastCommandedSpeed = 0;
     }
+
+    
+    public Command agitateCommand(double speed) {
+        Trigger stalled = new Trigger(this::isStalled).debounce(0.4); // debounce covers spin-up
+        return Commands.repeatingSequence(
+            this.run(() -> changeAgitatorSpeed(speed)).until(stalled),
+            this.run(() -> changeAgitatorSpeed(-speed)).withTimeout(0.25)
+        ).finallyDo(this::stopAgitator);
+    }
+
 
     @Override
     public void periodic() {

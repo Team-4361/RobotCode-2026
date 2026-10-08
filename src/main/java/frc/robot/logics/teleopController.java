@@ -23,9 +23,9 @@ public class teleopController {
     public double rV = 0;
     public boolean isOrbit = false;
 
-    public SlewRateLimiter xfilter = new SlewRateLimiter(4);
-    public SlewRateLimiter yfilter = new SlewRateLimiter(4);
-    public SlewRateLimiter rfilter = new SlewRateLimiter(4);
+    public SlewRateLimiter xfilter = new SlewRateLimiter(8);
+    public SlewRateLimiter yfilter = new SlewRateLimiter(8);
+    public SlewRateLimiter rfilter = new SlewRateLimiter(8);
 
     // ── Hub-orbit state ───────────────────────────────────────────────────────
     /**
@@ -132,9 +132,9 @@ public class teleopController {
         }
 
         // ── 4. Cube for smoother feel ──────────────────────────────────────
-        double xInput = Math.pow(xSpeedJoystick, 3);
-        double yInput = Math.pow(ySpeedJoystick, 3);
-        double rInput = Math.pow(rSpeedJoystick, 3);
+        double xInput = Math.copySign(xSpeedJoystick * xSpeedJoystick, xSpeedJoystick); // square, keeps sign
+        double yInput = Math.copySign(ySpeedJoystick * ySpeedJoystick, ySpeedJoystick); // square, keeps sign
+        double rInput = Math.copySign(rSpeedJoystick * rSpeedJoystick, rSpeedJoystick); // square, keeps sign
 
         // ── 5. Scale to physical velocities ───────────────────────────────
         double maxV   = RobotContainer.drivebase.getMaximumVelocity();
