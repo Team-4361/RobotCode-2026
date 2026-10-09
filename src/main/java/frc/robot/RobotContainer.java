@@ -8,6 +8,8 @@ import java.io.File;
 import java.util.Optional;
 import java.util.Set;
 
+import com.ctre.phoenix6.SignalLogger;
+import com.ctre.phoenix6.StatusCode;
 import com.pathplanner.lib.auto.AutoBuilder;
 import com.pathplanner.lib.auto.NamedCommands;
 
@@ -359,10 +361,54 @@ private Command shootWithIntakeBounceAuto(double shooterSpeed, double durationSe
         
 
     }
+private void startHootLog()
+{
+    StatusCode status = SignalLogger.start();
+    String msg = "Hoot log START: " + status;
+    System.out.println(msg);
+    DriverStation.reportWarning(msg, false);
+    SmartDashboard.putString("HootLog/Status", msg);
+    SmartDashboard.putBoolean("HootLog/Running", status.isOK());
+}
+
+private void stopHootLog()
+{
+    StatusCode status = SignalLogger.stop();
+    String msg = "Hoot log STOP: " + status;
+    System.out.println(msg);
+    DriverStation.reportWarning(msg, false);
+    SmartDashboard.putString("HootLog/Status", msg);
+    SmartDashboard.putBoolean("HootLog/Running", false);
+}
+
+private Command shooter2000RpmCommand()
+{
+    return shooter.setRPMCommand(3000)
+        .beforeStarting(() -> System.out.println(">>> 2000 RPM command STARTED"))
+        .finallyDo(interrupted -> System.out.println(">>> 2000 RPM command ENDED, interrupted=" + interrupted))
+        .withName("Shooter 2000 RPM");
+}
+
+private Command shooterStopCommand()
+{
+    return shooter.stop().withName("Shooter Stop");
+}
 
     private void configureBindings()
     {
 
+        // ── Hoot log controls: work enabled OR disabled ──────────────────────
+// Controller: START button = start log, BACK button = stop log
+    operatorXbox.start().onTrue(
+        Commands.runOnce(this::startHootLog).ignoringDisable(true).withName("StartHootLog"));
+    operatorXbox.back().onTrue(
+        Commands.runOnce(this::stopHootLog).ignoringDisable(true).withName("StopHootLog"));
+
+    // Dashboard buttons (Shuffleboard/Elastic/SmartDashboard)
+    SmartDashboard.putData("HootLog/Start",
+        Commands.runOnce(this::startHootLog).ignoringDisable(true).withName("Start Hoot Log"));
+    SmartDashboard.putData("HootLog/Stop",
+        Commands.runOnce(this::stopHootLog).ignoringDisable(true).withName("Stop Hoot Log"));
         // ── Simulation bindings ───────────────────────────────────────────────
         if (Robot.isSimulation())
         {
@@ -395,8 +441,7 @@ private Command shootWithIntakeBounceAuto(double shooterSpeed, double durationSe
         
 
             // ── Operator: Shoot ──────────────────────────────────────────────────
-            operatorXbox.rightBumper().whileTrue(shootWithFeedCommand());
-            operatorXbox.leftBumper().whileTrue(shooter.setSPEED(SHOOTER_REV_SPEED));
+
 
             
         }        
@@ -427,9 +472,17 @@ private Command shootWithIntakeBounceAuto(double shooterSpeed, double durationSe
 // drivebase.setDefaultCommand(teleopFlightDriveCommand);
 
             
-            
-            operatorXbox.a().onTrue(intakeArm.deployCommand());
-            operatorXbox.b().onTrue(intakeArm.stowCommand());
+            operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+            operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+            operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
+            operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+
+
+
+          //  operatorXbox.a().onTrue(intakeArm.deployCommand());
+           // operatorXbox.b().onTrue(intakeArm.stowCommand());
+
+
             joystickR.button(3).onTrue(intakeArm.stowHalfCommand());
             joystickR.button(1).toggleOnTrue(intakeRoller.intakeCommand());
         operatorXbox.leftTrigger(0.3).whileTrue(intakeRoller.outtakeCommand());
@@ -440,6 +493,9 @@ private Command shootWithIntakeBounceAuto(double shooterSpeed, double durationSe
             // ── Operator: Shoot ──────────────────────────────────────────────────
             joystickR.button(2).whileTrue(shootWithFeedCommand());
             joystickL.button(4).whileTrue(shooter.setSPEED(SHOOTER_REV_SPEED));
+
+        operatorXbox.rightStick().whileTrue(shooter2000RpmCommand());   // hold = 2000 RPM
+        operatorXbox.leftStick().onTrue(shooterStopCommand());          // press = stop
 
             
         }

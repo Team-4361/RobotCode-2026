@@ -8,6 +8,7 @@ import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 import edu.wpi.first.math.filter.SlewRateLimiter;
+import edu.wpi.first.wpilibj.DataLogManager;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -63,6 +64,9 @@ public class Robot extends LoggedRobot   // <-- was TimedRobot
     // ---- AdvantageKit setup: do this before anything else ----
     // Wrapped in try/catch: a logging failure must never stop the rest of
     // robotInit() from running.
+
+    DataLogManager.start();
+    
     try
     {
       Logger.recordMetadata("ProjectName", "2026Robot");

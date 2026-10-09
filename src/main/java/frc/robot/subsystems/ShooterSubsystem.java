@@ -3,6 +3,7 @@ package frc.robot.subsystems;
 import static edu.wpi.first.units.Units.*;
 
 import com.ctre.phoenix6.SignalLogger;
+import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.CurrentLimitsConfigs;
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
@@ -11,6 +12,7 @@ import com.ctre.phoenix6.controls.VelocityVoltage;
 import com.ctre.phoenix6.controls.VoltageOut;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.MotorAlignmentValue;
+import com.ctre.phoenix6.StatusCode;
 
 import org.littletonrobotics.junction.Logger;
 
@@ -77,8 +79,8 @@ public class ShooterSubsystem extends SubsystemBase {
     // Only the PRIMARY ever gets a closed-loop / voltage / duty-cycle request
     // built and sent — the follower request below is applied ONCE and then
     // the follower firmware handles mirroring on its own from then on.
-    private final VelocityVoltage velocityRequest = new VelocityVoltage(0).withSlot(0);
-    private final VoltageOut      m_voltReq       = new VoltageOut(0.0);
+    private final VelocityVoltage velocityRequest = new VelocityVoltage(0).withSlot(0).withEnableFOC(false);
+    private final VoltageOut      m_voltReq       = new VoltageOut(0.0).withEnableFOC(false);
 
     /**
      * Built once, applied once in the constructor. After that, the follower
@@ -95,9 +97,14 @@ public class ShooterSubsystem extends SubsystemBase {
     );
     private double targetRPM = 0.0;
 
+// =========================================================================
+// PHOENIX SIGNAL LOGGER CONTROLS (for SysId)
+// =========================================================================
+
+
     // ── Live-tunable PID/FF gains for the closed-loop RPM path ─────────────
     private final TunableNumber tKP = new TunableNumber("Shooter/Tuning/kP", 0.11);
-    private final TunableNumber tKI = new TunableNumber("Shooter/Tuning/kI", 0.0);
+    private final TunableNumber tKI = new TunableNumber("Shooter/Tuning/kI", 0.1);
     private final TunableNumber tKD = new TunableNumber("Shooter/Tuning/kD", 0.0);
     private final TunableNumber tKS = new TunableNumber("Shooter/Tuning/kS", 0.27937);
     private final TunableNumber tKV = new TunableNumber("Shooter/Tuning/kV", 0.089836);
@@ -218,12 +225,16 @@ public class ShooterSubsystem extends SubsystemBase {
     //  the follower request applied in the constructor mirrors it.
     // =========================================================================
 
-    public void setTargetRPM(double rpm) {
-        targetRPM = rpm;
-        double motorRotPerSec = (rpm / 60.0) * GEAR_RATIO;
-        primaryKraken.setControl(velocityRequest.withVelocity(motorRotPerSec));
-    }
 
+public void setTargetRPM(double rpm) {
+    targetRPM = rpm;
+    double motorRotPerSec = (rpm / 60.0) * GEAR_RATIO;
+    StatusCode status = primaryKraken.setControl(velocityRequest.withVelocity(motorRotPerSec));
+    SmartDashboard.putString("Shooter/Control Status", status.toString());
+    if (!status.isOK()) {
+        DriverStation.reportWarning("Shooter velocity setControl failed: " + status, false);
+    }
+}
     public Command setRPMCommand(double rpm) {
         return this.run(() -> setTargetRPM(rpm));
     }
