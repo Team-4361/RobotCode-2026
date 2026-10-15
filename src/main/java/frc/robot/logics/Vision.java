@@ -37,17 +37,9 @@ public class Vision {
     boolean useRight = true;
 
     // --- AprilTag field layout ---
-AprilTagFieldLayout aprilTagFieldLayout = loadCustomFieldLayout();
+    AprilTagFieldLayout aprilTagFieldLayout =
+        AprilTagFieldLayout.loadField(AprilTagFields.k2026RebuiltWelded);
 
-    private static AprilTagFieldLayout loadCustomFieldLayout() {
-        try {
-            return new AprilTagFieldLayout(
-                new File(Filesystem.getDeployDirectory(),
-                        "2026-robocon-welded-photonvision-wpilib-apriltag-map.json").toPath());
-        } catch (IOException e) {
-            throw new RuntimeException("Failed to load custom AprilTag field layout", e);
-        }
-    }
 
     // --- Cameras ---
     PhotonCamera frontLeftCam  = new PhotonCamera("frontLeftCam");

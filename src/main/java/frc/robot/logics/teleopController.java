@@ -25,7 +25,7 @@ public class teleopController {
 
     public SlewRateLimiter xfilter = new SlewRateLimiter(8);
     public SlewRateLimiter yfilter = new SlewRateLimiter(8);
-    public SlewRateLimiter rfilter = new SlewRateLimiter(8);
+    public SlewRateLimiter rfilter = new SlewRateLimiter(4);
 
     // ── Hub-orbit state ───────────────────────────────────────────────────────
     /**
