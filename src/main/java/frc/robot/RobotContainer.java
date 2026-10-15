@@ -23,6 +23,8 @@ import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.DriverStation.Alliance;
 import edu.wpi.first.wpilibj.Filesystem;
 import edu.wpi.first.wpilibj.smartdashboard.Field2d;
+import frc.robot.logics.ShotCalculator;
+import frc.robot.logics.ShotTuning;
 import edu.wpi.first.wpilibj.smartdashboard.SendableChooser;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
@@ -91,6 +93,51 @@ public class RobotContainer
     SlewRateLimiter xfilter = new SlewRateLimiter(4);
     SlewRateLimiter yfilter = new SlewRateLimiter(4);
     SlewRateLimiter rfilter = new SlewRateLimiter(4);
+
+// ===== Table-driven shooting (teleop) =====
+private static final double SHOT_RPM_TOLERANCE   = 75.0;
+private static final double AIM_TOLERANCE_RAD    = Math.toRadians(3.0);
+/** Set false to feed as soon as RPM + range are good, even if not aimed. */
+private static final boolean REQUIRE_AIM_TO_FEED = true;
+
+/** Sets shooter RPM from the table (or the tuned RPM when ShotTune/Enabled is ticked). */
+private Command trackShotCommand()
+{
+    return shooter.run(() -> shooter.setTargetRPM(ShotTuning.commandedRpm()))
+                  .withName("TrackShot");
+}
+
+private boolean readyToFeed()
+{
+    ShotCalculator.Solution s = ShotCalculator.solveNow();
+    boolean aimed = !REQUIRE_AIM_TO_FEED || Math.abs(s.headingErrorRad) < AIM_TOLERANCE_RAD;
+    // In tune mode you may be testing outside the table, so skip the range check.
+    boolean rangeOk = ShotTuning.isEnabled() || s.inRange;
+    return shooter.getTargetRPM() > 500          // guard: target 0 == "at speed" when stopped
+        && shooter.isAtTargetSpeed(SHOT_RPM_TOLERANCE)
+        && rangeOk
+        && aimed;
+}
+
+/** Runs agitator + indexer only while readyToFeed(). Does NOT require the shooter. */
+private Command feedWhenReadyCommand()
+{
+    return Commands.run(() -> {
+            boolean ready = readyToFeed();
+            agitator.changeAgitatorSpeed(ready ? 0.3 : 0.0);
+            indexer.SetMotorSpeed(ready ? -0.4 : 0.0);
+        }, agitator, indexer)
+        .finallyDo(interrupted -> { agitator.stopAgitator(); indexer.stop(); })
+        .withName("FeedWhenReady");
+}
+
+/** Teleop shoot: table/tuned RPM + gated feed. */
+private Command shootOnMoveCommand()
+{
+    // trackShot FIRST so targetRPM is set before the feed gate reads it.
+    return Commands.parallel(trackShotCommand(), feedWhenReadyCommand())
+                   .withName("ShootOnMove");
+}
 
 
 private Pose2d mirrorPose(Pose2d pose) {
@@ -492,8 +539,10 @@ private Command shooterStopCommand()
 
 
             // ── Operator: Shoot ──────────────────────────────────────────────────
-            joystickR.button(2).whileTrue(shootWithFeedCommand());
-            joystickL.button(4).whileTrue(shooter.setSPEED(SHOOTER_REV_SPEED));
+        joystickR.button(2).whileTrue(shootOnMoveCommand());   // was shootWithFeedCommand()
+        joystickL.button(4).whileTrue(trackShotCommand());     // was shooter.setSPEED(SHOOTER_REV_SPEED)
+// Optional manual fallback if the table is bad at practice:
+// joystickL.button(3).whileTrue(shootWithFeedCommand());
 
         // operatorXbox.rightStick().whileTrue(shooter2000RpmCommand());   // hold = 2000 RPM
         // operatorXbox.leftStick().onTrue(shooterStopCommand());          // press = stop
