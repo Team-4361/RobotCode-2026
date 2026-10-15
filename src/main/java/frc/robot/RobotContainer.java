@@ -431,10 +431,10 @@ private Command shooterStopCommand()
 
             
             
-            operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-            operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-            operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
-            operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+            // operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+            // operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+            // operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
+            // operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
             operatorXbox.rightTrigger(0.3).toggleOnTrue(intakeRoller.intakeCommand());
             operatorXbox.leftTrigger(0.3).whileTrue(intakeRoller.outtakeCommand());
             operatorXbox.povUp().whileTrue(intakeArm.manualCommand());
@@ -473,15 +473,15 @@ private Command shooterStopCommand()
 // drivebase.setDefaultCommand(teleopFlightDriveCommand);
 
             
-            operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-            operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-            operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
-            operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+            // operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
+            // operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
+            // operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
+            // operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
 
 
 
-          //  operatorXbox.a().onTrue(intakeArm.deployCommand());
-           // operatorXbox.b().onTrue(intakeArm.stowCommand());
+           operatorXbox.a().onTrue(intakeArm.deployCommand());
+           operatorXbox.b().onTrue(intakeArm.stowCommand());
 
 
             joystickR.button(3).onTrue(intakeArm.stowHalfCommand());
@@ -495,8 +495,8 @@ private Command shooterStopCommand()
             joystickR.button(2).whileTrue(shootWithFeedCommand());
             joystickL.button(4).whileTrue(shooter.setSPEED(SHOOTER_REV_SPEED));
 
-        operatorXbox.rightStick().whileTrue(shooter2000RpmCommand());   // hold = 2000 RPM
-        operatorXbox.leftStick().onTrue(shooterStopCommand());          // press = stop
+        // operatorXbox.rightStick().whileTrue(shooter2000RpmCommand());   // hold = 2000 RPM
+        // operatorXbox.leftStick().onTrue(shooterStopCommand());          // press = stop
 
             
         }
