@@ -177,7 +177,7 @@ public void periodic()
           // Method that will drive the robot given ROBOT RELATIVE ChassisSpeeds. Also optionally outputs individual module feedforwards
           new PPHolonomicDriveController(
               // PPHolonomicController is the built in path following controller for holonomic drive trains
-              new PIDConstants(3, 0.0, 0.0),
+              new PIDConstants(4.5, 0.0, 0.0),
               // Translation PID constants
               new PIDConstants(10.0, 0.0, 0.0)
               // Rotation PID constants

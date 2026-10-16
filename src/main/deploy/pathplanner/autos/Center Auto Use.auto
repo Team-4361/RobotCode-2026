@@ -17,22 +17,9 @@
           }
         },
         {
-          "type": "sequential",
+          "type": "named",
           "data": {
-            "commands": [
-              {
-                "type": "named",
-                "data": {
-                  "name": "ShootCenter"
-                }
-              },
-              {
-                "type": "named",
-                "data": {
-                  "name": "stowHalf"
-                }
-              }
-            ]
+            "name": "ShootBounce"
           }
         }
       ]

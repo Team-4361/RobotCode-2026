@@ -400,16 +400,16 @@ private Command shooterStopCommand()
 
         // ── Hoot log controls: work enabled OR disabled ──────────────────────
 // Controller: START button = start log, BACK button = stop log
-    operatorXbox.start().onTrue(
-        Commands.runOnce(this::startHootLog).ignoringDisable(true).withName("StartHootLog"));
-    operatorXbox.back().onTrue(
-        Commands.runOnce(this::stopHootLog).ignoringDisable(true).withName("StopHootLog"));
+    // operatorXbox.start().onTrue(
+    //     Commands.runOnce(this::startHootLog).ignoringDisable(true).withName("StartHootLog"));
+    // operatorXbox.back().onTrue(
+    //     Commands.runOnce(this::stopHootLog).ignoringDisable(true).withName("StopHootLog"));
 
-    // Dashboard buttons (Shuffleboard/Elastic/SmartDashboard)
-    SmartDashboard.putData("HootLog/Start",
-        Commands.runOnce(this::startHootLog).ignoringDisable(true).withName("Start Hoot Log"));
-    SmartDashboard.putData("HootLog/Stop",
-        Commands.runOnce(this::stopHootLog).ignoringDisable(true).withName("Stop Hoot Log"));
+    // // Dashboard buttons (Shuffleboard/Elastic/SmartDashboard)
+    // SmartDashboard.putData("HootLog/Start",
+    //     Commands.runOnce(this::startHootLog).ignoringDisable(true).withName("Start Hoot Log"));
+    // SmartDashboard.putData("HootLog/Stop",
+    //     Commands.runOnce(this::stopHootLog).ignoringDisable(true).withName("Stop Hoot Log"));
         // ── Simulation bindings ───────────────────────────────────────────────
         if (Robot.isSimulation())
         {
@@ -449,20 +449,19 @@ private Command shooterStopCommand()
         else
         {
 
-
-        joystickL.button(2).whileTrue(
-            Commands.defer(() -> {
-                Optional<Alliance> alliance = DriverStation.getAlliance();
-                Pose2d target;
-                if (alliance.isPresent() && alliance.get() == Alliance.Red) {
-                    target = new Pose2d(new Translation2d(15.483717765710468, 5.278244), Rotation2d.fromDegrees(-85));
-                } else {
-                    // Mirror X across the field for blue alliance
-                    target = new Pose2d(new Translation2d(FIELD_LENGTH_M - 15.483717765710468, 5.278244), Rotation2d.fromDegrees(-95));
-                }
-                return drivebase.driveToPose(target);
-            }, Set.of(drivebase))
-        );
+        // joystickL.button(2).whileTrue(
+        //     Commands.defer(() -> {
+        //         Optional<Alliance> alliance = DriverStation.getAlliance();
+        //         Pose2d target;
+        //         if (alliance.isPresent() && alliance.get() == Alliance.Red) {
+        //             target = new Pose2d(new Translation2d(15.483717765710468, 5.278244), Rotation2d.fromDegrees(-85));
+        //         } else {
+        //             // Mirror X across the field for blue alliance
+        //             target = new Pose2d(new Translation2d(FIELD_LENGTH_M - 15.483717765710468, 5.278244), Rotation2d.fromDegrees(-95));
+        //         }
+        //         return drivebase.driveToPose(target);
+        //     }, Set.of(drivebase))
+        // );
             // ── Driver bindings ──────────────────────────────────────────────────
 
             // FIX: Was drivebase::zeroGyro (no alliance, no vision re-seed).
@@ -473,31 +472,30 @@ private Command shooterStopCommand()
 // drivebase.setDefaultCommand(teleopFlightDriveCommand);
 
             
-            // operatorXbox.a().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kForward));
-            // operatorXbox.b().whileTrue(shooter.sysIdQuasistatic(SysIdRoutine.Direction.kReverse));
-            // operatorXbox.x().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kForward));
-            // operatorXbox.y().whileTrue(shooter.sysIdDynamic(SysIdRoutine.Direction.kReverse));
+            
+     // ── Driver bindings ──────────────────────────────────────────────────
+
+            // FIX: Was drivebase::zeroGyro (no alliance, no vision re-seed).
+            // Now calls zeroGyroAndReseed() which handles all three steps.
+            joystickR.button(5).onTrue(Commands.runOnce(this::zeroGyroAndReseed));
 
 
+// drivebase.setDefaultCommand(teleopFlightDriveCommand);
 
-           operatorXbox.a().onTrue(intakeArm.deployCommand());
-           operatorXbox.b().onTrue(intakeArm.stowCommand());
-
-
+            
+            
+            operatorXbox.a().onTrue(intakeArm.deployCommand());
+            operatorXbox.b().onTrue(intakeArm.stowCommand());
             joystickR.button(3).onTrue(intakeArm.stowHalfCommand());
             joystickR.button(1).toggleOnTrue(intakeRoller.intakeCommand());
-        operatorXbox.leftTrigger(0.3).whileTrue(intakeRoller.outtakeCommand());
-        operatorXbox.povUp().whileTrue(intakeArm.manualCommand());
-        operatorXbox.povDown().whileTrue(intakeArm.manualCommandDown());
+            operatorXbox.leftTrigger(0.3).whileTrue(intakeRoller.outtakeCommand());
+            operatorXbox.povUp().whileTrue(intakeArm.manualCommand());
+            operatorXbox.povDown().whileTrue(intakeArm.manualCommandDown());
 
 
             // ── Operator: Shoot ──────────────────────────────────────────────────
             joystickR.button(2).whileTrue(shootWithFeedCommand());
             joystickL.button(4).whileTrue(shooter.setSPEED(SHOOTER_REV_SPEED));
-
-        // operatorXbox.rightStick().whileTrue(shooter2000RpmCommand());   // hold = 2000 RPM
-        // operatorXbox.leftStick().onTrue(shooterStopCommand());          // press = stop
-
             
         }
     }

@@ -3,12 +3,12 @@
   "waypoints": [
     {
       "anchor": {
-        "x": 2.938831026066219,
+        "x": 3.514436536180309,
         "y": 4.008322309378746
       },
       "prevControl": null,
       "nextControl": {
-        "x": 1.9127772291678315,
+        "x": 2.4883827392819216,
         "y": 4.0466794606646665
       },
       "isLocked": false,
@@ -16,11 +16,11 @@
     },
     {
       "anchor": {
-        "x": 1.4141342624508586,
+        "x": 2.008149466192171,
         "y": 4.008322309378746
       },
       "prevControl": {
-        "x": 2.286759454205561,
+        "x": 2.8807746579468736,
         "y": 4.008322309378746
       },
       "nextControl": null,
@@ -51,28 +51,6 @@
         "type": "named",
         "data": {
           "name": "RevShooter"
-        }
-      }
-    },
-    {
-      "name": "Intake",
-      "waypointRelativePos": 0.25256511444357416,
-      "endWaypointRelativePos": null,
-      "command": {
-        "type": "named",
-        "data": {
-          "name": "Intake"
-        }
-      }
-    },
-    {
-      "name": "StopIntake",
-      "waypointRelativePos": 1.0,
-      "endWaypointRelativePos": null,
-      "command": {
-        "type": "named",
-        "data": {
-          "name": "StopIntake"
         }
       }
     }
