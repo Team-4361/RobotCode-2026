@@ -449,15 +449,15 @@ private Command shooterStopCommand()
         else
         {
 
-        // joystickL.button(2).whileTrue(
+        // joystickL.button(6).whileTrue(
         //     Commands.defer(() -> {
         //         Optional<Alliance> alliance = DriverStation.getAlliance();
         //         Pose2d target;
-        //         if (alliance.isPresent() && alliance.get() == Alliance.Red) {
-        //             target = new Pose2d(new Translation2d(15.483717765710468, 5.278244), Rotation2d.fromDegrees(-85));
+        //         if (alliance.isPresent() && alliance.get() == Alliance.Blue) {
+        //             target = new Pose2d(new Translation2d(5.871, 7.440), Rotation2d.fromDegrees(-171.6));
         //         } else {
-        //             // Mirror X across the field for blue alliance
-        //             target = new Pose2d(new Translation2d(FIELD_LENGTH_M - 15.483717765710468, 5.278244), Rotation2d.fromDegrees(-95));
+        //             // Mirror X across the field for red alliance
+        //             target = new Pose2d(new Translation2d(FIELD_LENGTH_M - 5.871, 7.440), Rotation2d.fromDegrees(-95));
         //         }
         //         return drivebase.driveToPose(target);
         //     }, Set.of(drivebase))
@@ -496,7 +496,10 @@ private Command shooterStopCommand()
             // ── Operator: Shoot ──────────────────────────────────────────────────
             joystickR.button(2).whileTrue(shootWithFeedCommand());
             joystickL.button(4).whileTrue(shooter.setSPEED(SHOOTER_REV_SPEED));
-            
+            operatorXbox.leftBumper().whileTrue(shooter.setSPEED(SHOOTER_REV_SPEED));
+
+
+
         }
     }
 
