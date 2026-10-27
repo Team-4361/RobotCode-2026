@@ -29,13 +29,9 @@ public final class ShotCalculator {
     // {distance (m, shooter exit -> hub centre), shooter RPM, time of flight (s)}
     // =========================================================================
     private static final double[][] TABLE = {
-        {1.75, 2700, 0.80},
-        {2.00, 2850, 0.85},
-        {2.35, 3000, 0.92},
-        {2.75, 3200, 1.00},
-        {3.25, 3450, 1.10},
-        {3.75, 3700, 1.20},
-        {4.25, 3950, 1.30},
+        {1.949754, 2500, 5},
+        {2.289754, 3000, 5.16},
+        {2.949754, 3350, 5.97},
     };
 
     private static final InterpolatingDoubleTreeMap RPM_MAP = new InterpolatingDoubleTreeMap();
